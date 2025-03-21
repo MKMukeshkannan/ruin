@@ -1,5 +1,8 @@
 # Prerequisites
 *.d
+.DS_Stor
+build
+.cache
 
 # Compiled Object files
 *.slo
