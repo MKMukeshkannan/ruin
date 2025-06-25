@@ -1,3 +1,6 @@
+#ifndef BASE 
+#define BASE 
+
 /*
  *   CONTEXT CRACKING SECTION
  */
@@ -135,5 +138,30 @@ typedef uint32_t U32;
 typedef uint64_t U64;
 typedef float    F32;
 typedef double   F64;
+typedef U8       B8;
+
+#define internal static 
+#define global   static 
 
 
+/*
+ * ARENA
+ *
+ */
+
+#include <stddef.h>
+#include <stdint.h>
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct Arena { unsigned char* buffer; size_t total_size; size_t current_offset; size_t previous_offset; } Arena;
+
+void arena_init(Arena* arena, void* buffer, size_t total_size);
+void* arena_allocate_align(Arena* arena, size_t size, size_t align);
+void* arena_allocate(Arena* arena, size_t size);
+void arena_free_all(Arena* arena);
+void arena_release(Arena* arena);
+
+
+#endif

@@ -1,6 +1,7 @@
 #include "../src/ruin.h"
 #include "raylib.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(void) {
   const int screenWidth = 800;
@@ -9,6 +10,9 @@ int main(void) {
   InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
   SetTargetFPS(60);
+
+  ruin_Context* context = (ruin_Context*)malloc(sizeof(ruin_Context));
+
   while (!WindowShouldClose()) {
     BeginDrawing();
 
@@ -24,4 +28,11 @@ int main(void) {
   CloseWindow();
 
   return 0;
-}
+};
+
+void r_draw_rect(ruin_Rect *rect, ruin_Color color) {
+  if (rect == NULL)
+    return;
+
+  DrawRectangle(rect->x, rect->y, rect->h, rect->w, (Color){ .r = color.r, .g = color.g, .b = color.b, .a = color.a, });
+};
