@@ -143,25 +143,66 @@ typedef U8       B8;
 #define internal static 
 #define global   static 
 
+/*
+ * LINKED LIST
+ */
+#define DLLPushBack_NP(f,l,n,next,prev) ((f)==0?\
+    ((f)=(l)=(n),(n)->next=(n)->prev=0):\
+    ((n)->prev=(l),(l)->next=(n),(l)=(n),(n)->next=0))
+#define DLLPushBack(f,l,n) DLLPushBack_NP(f,l,n,next,prev)
+
+#define DLLPushFront(f,l,n) DLLPushBack_NP(l,f,n,prev,next)
+
+#define DLLRemove_NP(f,l,n,next,prev) ((f)==(n)?\
+    ((f)==(l)?\
+    ((f)=(l)=(0)):\
+    ((f)=(f)->next,(f)->prev=0)):\
+    (l)==(n)?\
+    ((l)=(l)->prev,(l)->next=0):\
+    ((n)->next->prev=(n)->prev,\
+    (n)->prev->next=(n)->next))
+#define DLLRemove(f,l,n) DLLRemove_NP(f,l,n,next,prev)
+
 
 /*
  * ARENA
  *
  */
-
 #include <stddef.h>
 #include <stdint.h>
-#include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <assert.h>
 #include <string.h>
 
-typedef struct Arena { unsigned char* buffer; size_t total_size; size_t current_offset; size_t previous_offset; } Arena;
+#ifndef DEFAULT_ALIGNMENT
+#define DEFAULT_ALIGNMENT (2*sizeof(void *))
+#endif
 
-void arena_init(Arena* arena, void* buffer, size_t total_size);
-void* arena_allocate_align(Arena* arena, size_t size, size_t align);
-void* arena_allocate(Arena* arena, size_t size);
-void arena_free_all(Arena* arena);
-void arena_release(Arena* arena);
+typedef struct Arena Arena;
+struct Arena {
+	unsigned char *buf;
+	size_t         buf_len;
+	size_t         prev_offset;
+	size_t         curr_offset;
+};
+void arena_init(Arena *a, void *backing_buffer, size_t backing_buffer_length);
+void *arena_alloc_align(Arena *a, size_t size, size_t align);
+void *arena_alloc(Arena *a, size_t size);
+void arena_free(Arena *a, void *ptr);
+void *arena_resize_align(Arena *a, void *old_memory, size_t old_size, size_t new_size, size_t align);
+void *arena_resize(Arena *a, void *old_memory, size_t old_size, size_t new_size);
+void arena_free_all(Arena *a);
+
+typedef struct Temp_Arena_Memory Temp_Arena_Memory;
+struct Temp_Arena_Memory {
+	Arena *arena;
+	size_t prev_offset;
+	size_t curr_offset;
+};
+Temp_Arena_Memory temp_arena_memory_begin(Arena *a);
+void temp_arena_memory_end(Temp_Arena_Memory temp);
+
 
 
 #endif

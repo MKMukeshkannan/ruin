@@ -1,38 +1,59 @@
-#include "../src/ruin.h"
+#include "../src/ruin.c"
+#include "../src/ruin_raylib_render.c"
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
 
+void CustomLog(int msgType, const char *text, va_list args) { return; }
+
 int main(void) {
-  const int screenWidth = 800;
-  const int screenHeight = 450;
+    const int screenWidth = 800;
+    const int screenHeight = 450;
 
-  InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
+    SetTraceLogCallback(CustomLog); // call this before InitWindow()
+    InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
-  SetTargetFPS(60);
+    ruin_Context* ctx = create_ruin_context();
 
-  ruin_Context* context = (ruin_Context*)malloc(sizeof(ruin_Context));
 
-  while (!WindowShouldClose()) {
-    BeginDrawing();
 
-    ClearBackground(RAYWHITE);
+    SetTargetFPS(60);
+    while (!WindowShouldClose()) {
 
-    char buffer[200];
-    snprintf(buffer, sizeof(buffer), "you mouse is at (%i, %i) position", GetMouseX(), GetMouseY());
 
-    DrawText(buffer, 20, 20, 40, LIGHTGRAY);
 
-    EndDrawing();
-  }
-  CloseWindow();
 
-  return 0;
+
+
+
+       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){0, 0, 200, 200}, 0);
+
+       if (ruin_Button(ctx, "")) {};
+
+       ruin_EndWindow(ctx);
+
+
+
+
+
+
+
+        // ruin_ComputeLayout();
+        // ruin_RaylibRender();
+
+
+        BeginDrawing();
+        EndDrawing();
+    }
+    CloseWindow();
+
+    free(ctx);
+    return 0;
 };
 
 void r_draw_rect(ruin_Rect *rect, ruin_Color color) {
-  if (rect == NULL)
-    return;
+    if (rect == NULL)
+        return;
 
-  DrawRectangle(rect->x, rect->y, rect->h, rect->w, (Color){ .r = color.r, .g = color.g, .b = color.b, .a = color.a, });
+    DrawRectangle(rect->x, rect->y, rect->h, rect->w, (Color){ .r = color.r, .g = color.g, .b = color.b, .a = color.a, });
 };
