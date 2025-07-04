@@ -21,30 +21,25 @@ int main(void) {
     while (!WindowShouldClose()) {
 
 
-
-
-
-
-
        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){0, 0, 200, 200}, 0);
+         if (ruin_Button(ctx, "Ok")) {};
+         if (ruin_Button(ctx, "Ok1")) {};
 
-       if (ruin_Button(ctx, "")) {};
+         ruin_SameLine();
+         if (ruin_Button(ctx, "Ok2")) {};
+         if (ruin_Button(ctx, "Ok3")) {};
+         ruin_SameLine();
 
+         if (ruin_Button(ctx, "Ok4")) {};
        ruin_EndWindow(ctx);
 
+       ruin_ComputeLayout(ctx);
 
+       BeginDrawing();
+       ruin_RaylibRender(ctx);
+       EndDrawing();
 
-
-
-
-
-        // ruin_ComputeLayout();
-        // ruin_RaylibRender();
-
-
-        BeginDrawing();
-        EndDrawing();
-    }
+    };
     CloseWindow();
 
     free(ctx);
