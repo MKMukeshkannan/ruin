@@ -9,6 +9,7 @@
 #define WINDOW_ARRAY    20
 #define DRAW_QUEUE_SIZE 20
 
+
 // HEADER MESS
 typedef U32    ruin_Id; 
 typedef enum   ruin_SizeKind    { RUIN_SIZEKIND_PIXEL, RUIN_SIZEKIND_TEXTCONTENT, RUIN_SIZEKIND_PARENTPERCENTAGE, RUIN_SIZEKIND_CHILDRENSUM } ruin_SizeKind;
@@ -21,6 +22,7 @@ typedef struct ruin_Size        { ruin_SizeKind kind; F32 value; F32 strictness;
 typedef struct ruin_Vec2        { U32 x, y; }                                                                                                ruin_Vec2;
 typedef struct ruin_Rect        { U32 x, y, h, w; }                                                                                          ruin_Rect;
 typedef struct ruin_Color       { U8 r, g, b, a; }                                                                                           ruin_Color;
+ruin_Color make_color_hex(U32 color);
 
 typedef union ruin_DrawCall {
     ruin_DrawType type;
@@ -43,6 +45,9 @@ struct ruin_Widget {
     char* text;
     char flags;
     ruin_Id id;
+
+    ruin_Color background;
+    ruin_Color foreground;
 };
 
 typedef struct ruin_Window                     ruin_Window;
@@ -180,6 +185,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         root->size[0] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
         root->size[1] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
         root->text = "root##default";
+        root->background = make_color_hex(0xFFFFFFFF);
 
         root->draw_coords.x=ctx->current_window->window_rect.x;
         root->draw_coords.y=ctx->current_window->window_rect.y;
@@ -251,7 +257,8 @@ void generate_draw_calls(ruin_Context* ctx, ruin_Widget* root_widget, ruin_Widge
         // DO MY STUFF HERE
         ctx->draw_queue.items[ctx->draw_queue.index].type = RUIN_DRAWTYPE_RECT;
         ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.rect = current_widget->draw_coords;
-        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.color = (ruin_Color) { .r=255, .g=255, .b=255, .a=255 };
+        printf("widget: %s, => (%d, %d, %d, %d)\n", current_widget->text, current_widget->background.r, current_widget->background.g, current_widget->background.b, current_widget->background.a);
+        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.color = current_widget->background;
 
         ctx->draw_queue.index++;
 
@@ -310,7 +317,8 @@ B8 ruin_Button(ruin_Context* ctx, char* label) {
             .value = 28,
             .strictness = 1,
         };
-
+        button_widget->background = make_color_hex(0x0089F7FF);
+        button_widget->foreground = make_color_hex(0x000000FF);
         ctx->widgets.items[ctx->widgets.index++] = button_widget;
     };
 
@@ -351,6 +359,17 @@ ruin_Vec2 make_vec2(U32 x_pos, U32 y_pos) {
   ruin_Vec2 res;
   res.x = x_pos;
   res.y = y_pos;
+
+  return res;
+};
+
+ruin_Color make_color_hex(U32 color) {
+  ruin_Color res = (ruin_Color) {
+        .a=(color>>(8*0))&0xFF,
+        .b=(color>>(8*1))&0xFF,
+        .g=(color>>(8*2))&0xFF,
+        .r=(color>>(8*3))&0xFF,
+  };
 
   return res;
 };

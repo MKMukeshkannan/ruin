@@ -11,7 +11,7 @@ int main(void) {
     const int screenHeight = 450;
 
     SetTraceLogCallback(CustomLog); // call this before InitWindow()
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
     ruin_Context* ctx = create_ruin_context();

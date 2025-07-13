@@ -11,7 +11,6 @@ void ruin_RaylibRender(ruin_Context* ctx) {
         ruin_Rect rect = ctx->draw_queue.items[i].draw_rect.rect;
         ruin_Color color = ctx->draw_queue.items[i].draw_rect.color;
 
-        printf("rect => %d\n", rect.h);
         DrawRectangle(rect.x, rect.y, rect.w, rect.h - rect.y, (Color) {
             .a=color.a,
             .r=color.r,
