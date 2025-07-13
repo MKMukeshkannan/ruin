@@ -11,6 +11,7 @@ int main(void) {
     const int screenHeight = 450;
 
     SetTraceLogCallback(CustomLog); // call this before InitWindow()
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
     ruin_Context* ctx = create_ruin_context();
@@ -19,18 +20,21 @@ int main(void) {
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
+       ClearBackground(RAYWHITE);
 
 
-       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){0, 0, 200, 200}, 0);
-         if (ruin_Button(ctx, "Ok")) {};
-         if (ruin_Button(ctx, "Ok1")) {};
+       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){100, 50, 400, 400}, 0);
 
-         ruin_SameLine();
-         if (ruin_Button(ctx, "Ok2")) {};
-         if (ruin_Button(ctx, "Ok3")) {};
-         ruin_SameLine();
+       if (ruin_Button(ctx, "Ok")) {};
 
-         if (ruin_Button(ctx, "Ok4")) {};
+       ruin_SameLine();
+       if (ruin_Button(ctx, "Ok2")) {};
+       if (ruin_Button(ctx, "Ok3")) {};
+       ruin_SameLine();
+
+       if (ruin_Button(ctx, "Ok11")) {};
+       if (ruin_Button(ctx, "Ok12")) {};
+       if (ruin_Button(ctx, "Ok13")) {};
        ruin_EndWindow(ctx);
 
        ruin_ComputeLayout(ctx);

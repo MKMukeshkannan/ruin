@@ -5,11 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define WIDGET_ARRAY 20
-#define WINDOW_ARRAY 20
+#define WIDGET_ARRAY    20
+#define WINDOW_ARRAY    20
+#define DRAW_QUEUE_SIZE 20
 
 // HEADER MESS
-typedef U32 ruin_Id; 
+typedef U32    ruin_Id; 
 typedef enum   ruin_SizeKind    { RUIN_SIZEKIND_PIXEL, RUIN_SIZEKIND_TEXTCONTENT, RUIN_SIZEKIND_PARENTPERCENTAGE, RUIN_SIZEKIND_CHILDRENSUM } ruin_SizeKind;
 typedef enum   ruin_WidgetFlags { RUIN_WIDGETFLAGS_CLICKABLE = (1<<0), RUIN_WIDGETFLAGS_HOVERABLE = (1<<1) }                                 ruin_WidgetFlags;
 typedef enum   ruin_WindowFlags { RUIN_WINDOWFLAGS_DRAGABLE = (1<<0), RUIN_WINDOWFLAGS_NOMENU = (1<<1), RUIN_WINDOWFLAGS_NOTITLE = (1<<2) }  ruin_WindowFlags;
@@ -26,11 +27,7 @@ typedef union ruin_DrawCall {
     struct ruin_DrawRect { ruin_Rect rect; ruin_Color color; } draw_rect;
     struct ruin_DrawClip { ruin_Rect rect; } draw_clip;
     struct ruin_DrawText { char* text; } draw_text;
-
-    ruin_DrawType* next;
-    ruin_DrawType* prev;
 } ruin_DrawCall;
-typedef struct { ruin_DrawType* first; ruin_DrawType* last; } ruin_DrawQueue;
 
 typedef struct ruin_Widget                                                   ruin_Widget;
 struct ruin_Widget {
@@ -50,7 +47,6 @@ struct ruin_Widget {
 
 typedef struct ruin_Window                     ruin_Window;
 struct ruin_Window {
-    ruin_DrawQueue draw_queue;
 
     ruin_Rect window_rect;
     ruin_Widget* root_widget;  // window tree, donot persist across frames
@@ -67,12 +63,16 @@ typedef struct ruin_WindowList { ruin_Window* first; ruin_Window* last; } ruin_W
 typedef struct {
     struct {
         size_t index;
-        ruin_Widget* items[WIDGET_ARRAY];   // caches -> list of all widgets in that current window, persisted across frames
+        ruin_Widget* items[WIDGET_ARRAY];      // caches -> list of all widgets in that current window, persisted across frames
     } widgets;
     struct {
         size_t index;
-        ruin_Window* items[WINDOW_ARRAY];   // caches -> list of all widgets in that current window, persisted across frames
+        ruin_Window* items[WINDOW_ARRAY];      // caches -> list of all widgets in that current window, persisted across frames
     } windows;
+    struct {
+        size_t index;
+        ruin_DrawCall items[DRAW_QUEUE_SIZE]; // emptied every frame
+    } draw_queue;
 
     Arena arena; // persisted arena, across frames
     ruin_Window* current_window;
@@ -84,7 +84,7 @@ typedef struct {
 
 
 ruin_Context* create_ruin_context() {
-    const U32 ARENA_SIZE = 2048;
+    const U32 ARENA_SIZE = 4096;
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
@@ -177,9 +177,14 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         MEM_ZERO(root, sizeof(ruin_Widget));
 
         root->id = root_id;
-        root->size[0] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = 400, .strictness=1 }; ;
-        root->size[1] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = 400, .strictness=1 }; ;
+        root->size[0] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
+        root->size[1] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
         root->text = "root##default";
+
+        root->draw_coords.x=ctx->current_window->window_rect.x;
+        root->draw_coords.y=ctx->current_window->window_rect.y;
+        root->draw_coords.h=root->size[RUIN_AXISY].value;
+        root->draw_coords.w=root->size[RUIN_AXISX].value;
 
         ctx->widgets.items[ctx->widgets.index++] = root;
     };
@@ -199,7 +204,7 @@ void calculate_independent_sizes(ruin_Widget* root_widget, ruin_WidgetStack* sta
     while (get_top(stack) != NULL) {
         ruin_Widget* current_widget = pop(stack);
 
-        printf("sizeof %s => %fx%f\n", current_widget->text, current_widget->size[RUIN_AXISX].value, current_widget->size[RUIN_AXISY].value);
+        // printf("sizeof %s => %fx%f\n", current_widget->text, current_widget->size[RUIN_AXISX].value, current_widget->size[RUIN_AXISY].value);
         for (ruin_Widget* temp = current_widget->first_child; temp != NULL; temp = temp->next_sibling) {
             push(stack, temp);
         };
@@ -210,7 +215,53 @@ void calculate_independent_sizes(ruin_Widget* root_widget, ruin_WidgetStack* sta
 };
 
 
-void calculate_position(ruin_Widget* root, ruin_WidgetStack* stack) {
+void calculate_position(ruin_Widget* root_widget, ruin_WidgetStack* stack) { 
+
+
+    for (ruin_Widget* temp = root_widget->first_child; temp != NULL; temp = temp->next_sibling) push(stack, temp);
+
+
+    U32 x = root_widget->draw_coords.x, y = root_widget->draw_coords.y;
+    while (get_top(stack) != NULL) {
+        ruin_Widget* current_widget = pop(stack);
+
+        current_widget->draw_coords.x = x;
+        current_widget->draw_coords.y = y;
+        current_widget->draw_coords.h = current_widget->size[RUIN_AXISY].value + y;
+        current_widget->draw_coords.w = current_widget->size[RUIN_AXISX].value + x;
+
+        y += current_widget->size[RUIN_AXISY].value + 1;
+
+        //printf("coords %s =>  %d,%d,%d,%d\n", current_widget->text, current_widget->draw_coords.x, current_widget->draw_coords.y, current_widget->draw_coords.w, current_widget->draw_coords.h);
+
+        for (ruin_Widget* temp = current_widget->first_child; temp != NULL; temp = temp->next_sibling) push(stack, temp);
+    };
+
+    stack->top = 0;
+};
+
+void generate_draw_calls(ruin_Context* ctx, ruin_Widget* root_widget, ruin_WidgetStack* stack) {
+    push(stack, root_widget);
+    ctx->draw_queue.index = 0;
+
+    while (get_top(stack) != NULL) {
+        ruin_Widget* current_widget = pop(stack);
+
+
+        // DO MY STUFF HERE
+        ctx->draw_queue.items[ctx->draw_queue.index].type = RUIN_DRAWTYPE_RECT;
+        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.rect = current_widget->draw_coords;
+        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.color = (ruin_Color) { .r=255, .g=255, .b=255, .a=255 };
+
+        ctx->draw_queue.index++;
+
+
+        for (ruin_Widget* temp = current_widget->first_child; temp != NULL; temp = temp->next_sibling)
+            push(stack, temp);
+    };
+
+    stack->top = 0;
+
 };
 
 void ruin_ComputeLayout(ruin_Context* ctx) { 
@@ -227,6 +278,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
         calculate_independent_sizes(ctx->windows.items[i]->root_widget, widget_stack);
         calculate_position(ctx->windows.items[i]->root_widget, widget_stack);
+        generate_draw_calls(ctx, ctx->windows.items[i]->root_widget, widget_stack);
         
 
 
@@ -255,7 +307,7 @@ B8 ruin_Button(ruin_Context* ctx, char* label) {
         };
         button_widget->size[RUIN_AXISY] = (ruin_Size) {
             .kind = RUIN_SIZEKIND_PIXEL,
-            .value = 18,
+            .value = 28,
             .strictness = 1,
         };
 
@@ -274,6 +326,7 @@ B8 ruin_Button(ruin_Context* ctx, char* label) {
 
         button_widget->prev_sibling = temp;
         button_widget->next_sibling = NULL;
+        button_widget->parent = root_widget;
         temp->next_sibling = button_widget;
     };
 
