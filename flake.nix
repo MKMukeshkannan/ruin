@@ -10,9 +10,7 @@
     in
     {
       devShells = forEachSupportedSystem ({ pkgs }: {
-
-
-        default = pkgs.mkShell { packages = with pkgs; [ clang-tools cmake gnumake raylib ]; };
+        default = pkgs.mkShell { packages = with pkgs; [ clang-tools cmake gnumake raylib freetype ]; };
       });
     };
 }

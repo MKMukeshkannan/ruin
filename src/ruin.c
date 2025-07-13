@@ -1,9 +1,13 @@
 #ifndef RUIN_HEADER
 #define RUIN_HEADER
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include "base.h"
 #include <stdio.h>
 #include <stdlib.h>
+
 
 #define WIDGET_ARRAY    20
 #define WINDOW_ARRAY    20
@@ -22,13 +26,18 @@ typedef struct ruin_Size        { ruin_SizeKind kind; F32 value; F32 strictness;
 typedef struct ruin_Vec2        { U32 x, y; }                                                                                                ruin_Vec2;
 typedef struct ruin_Rect        { U32 x, y, h, w; }                                                                                          ruin_Rect;
 typedef struct ruin_Color       { U8 r, g, b, a; }                                                                                           ruin_Color;
+
+typedef struct ruin_CharInfo { S32 width; S32 rows; S32 bearingX; S32 bearingY; S32 advance; U8* buffer; } ruin_CharInfo;
+
 ruin_Color make_color_hex(U32 color);
 
-typedef union ruin_DrawCall {
+typedef struct ruin_DrawCall {
     ruin_DrawType type;
-    struct ruin_DrawRect { ruin_Rect rect; ruin_Color color; } draw_rect;
-    struct ruin_DrawClip { ruin_Rect rect; } draw_clip;
-    struct ruin_DrawText { char* text; } draw_text;
+    union {
+        struct ruin_DrawRect { ruin_Rect rect; ruin_Color color; } draw_rect;
+        struct ruin_DrawClip { ruin_Rect rect; } draw_clip;
+        struct ruin_DrawText { char* text; ruin_Vec2 pos; } draw_text;
+    };
 } ruin_DrawCall;
 
 typedef struct ruin_Widget                                                   ruin_Widget;
@@ -82,6 +91,8 @@ typedef struct {
     Arena arena; // persisted arena, across frames
     ruin_Window* current_window;
 
+    ruin_CharInfo font[128];
+
     ruin_Vec2 mouse_position;
     ruin_Id hot;
     ruin_Id active;
@@ -89,7 +100,7 @@ typedef struct {
 
 
 ruin_Context* create_ruin_context() {
-    const U32 ARENA_SIZE = 4096;
+    const U32 ARENA_SIZE = 12288;
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
@@ -99,6 +110,43 @@ ruin_Context* create_ruin_context() {
     ctx->arena = arena;
     ctx->widgets.index = 0;
     ctx->windows.index = 0;
+
+    FT_Library ft;
+    if (FT_Init_FreeType(&ft)) {
+        fprintf(stderr, "Freetype Init Problem");
+    };
+
+    FT_Face face;
+    if (FT_New_Face(ft, "jetbrains.ttf", 0, &face)) {
+        fprintf(stderr, "Freetype Face Creation Problem");
+    };
+    FT_Set_Pixel_Sizes(face, 0, 15);
+
+    for (unsigned char c = 0; c < 128; c++) {
+        if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+            fprintf(stderr, "ERROR::FREETYTPE: Failed to load Glyph");
+            continue;
+        }
+
+        size_t total_pixels = face->glyph->bitmap.width * face->glyph->bitmap.rows;
+        U8* gray_alpha_data = malloc(total_pixels * 2); 
+        for (size_t i = 0; i < total_pixels; i++) {
+            gray_alpha_data[i * 2 + 0] = face->glyph->bitmap.buffer[i];
+            gray_alpha_data[i * 2 + 1] =  (face->glyph->bitmap.buffer[i] < 0) ? 0 : face->glyph->bitmap.buffer[i];
+        };
+
+        ctx->font[c] = (ruin_CharInfo) {
+            .width = face->glyph->bitmap.width,
+            .rows = face->glyph->bitmap.rows,
+            .bearingX = face->glyph->bitmap_left,
+            .bearingY = face->glyph->bitmap_top,
+            .advance = face->glyph->advance.x,
+            .buffer = gray_alpha_data,
+        };
+
+    }
+    FT_Done_Face(face);
+    FT_Done_FreeType(ft);
 
     return ctx;
 };
@@ -222,8 +270,6 @@ void calculate_independent_sizes(ruin_Widget* root_widget, ruin_WidgetStack* sta
 
 
 void calculate_position(ruin_Widget* root_widget, ruin_WidgetStack* stack) { 
-
-
     for (ruin_Widget* temp = root_widget->first_child; temp != NULL; temp = temp->next_sibling) push(stack, temp);
 
 
@@ -255,12 +301,21 @@ void generate_draw_calls(ruin_Context* ctx, ruin_Widget* root_widget, ruin_Widge
 
 
         // DO MY STUFF HERE
-        ctx->draw_queue.items[ctx->draw_queue.index].type = RUIN_DRAWTYPE_RECT;
-        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.rect = current_widget->draw_coords;
-        printf("widget: %s, => (%d, %d, %d, %d)\n", current_widget->text, current_widget->background.r, current_widget->background.g, current_widget->background.b, current_widget->background.a);
-        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.color = current_widget->background;
+        ctx->draw_queue.items[ctx->draw_queue.index].type = 0;
 
+        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.rect = current_widget->draw_coords;
+        ctx->draw_queue.items[ctx->draw_queue.index].draw_rect.color = current_widget->background;
         ctx->draw_queue.index++;
+
+        /// printf("idx: %zu\n", ctx->draw_queue.index);
+        /// printf("widget: %s, => (%d, %d, %d, %d)\n", current_widget->text, current_widget->background.r, current_widget->background.g, current_widget->background.b, current_widget->background.a);
+
+       ctx->draw_queue.items[ctx->draw_queue.index].type = RUIN_DRAWTYPE_TEXT;
+       ctx->draw_queue.items[ctx->draw_queue.index].draw_text.text = current_widget->text;
+       ctx->draw_queue.items[ctx->draw_queue.index].draw_text.pos = 
+           (ruin_Vec2) { .x = current_widget->draw_coords.x + 5, .y = current_widget->draw_coords.y + 9, };
+       ctx->draw_queue.index++;
+
 
 
         for (ruin_Widget* temp = current_widget->first_child; temp != NULL; temp = temp->next_sibling)
@@ -303,18 +358,19 @@ B8 ruin_Button(ruin_Context* ctx, char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
 
+    // ALLOCATE and CREATE BUTTON FOR THE FIRST TIME
     if (button_widget == NULL) {
         button_widget = arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         button_widget->id = id;
         button_widget->text = label;
         button_widget->size[RUIN_AXISX] = (ruin_Size) {
-            .kind = RUIN_SIZEKIND_PIXEL,
-            .value = 100,
+            .kind = RUIN_SIZEKIND_TEXTCONTENT,
+            .value = 0,
             .strictness = 1,
         };
         button_widget->size[RUIN_AXISY] = (ruin_Size) {
-            .kind = RUIN_SIZEKIND_PIXEL,
-            .value = 28,
+            .kind = RUIN_SIZEKIND_TEXTCONTENT,
+            .value = 0,
             .strictness = 1,
         };
         button_widget->background = make_color_hex(0x0089F7FF);
@@ -322,6 +378,7 @@ B8 ruin_Button(ruin_Context* ctx, char* label) {
         ctx->widgets.items[ctx->widgets.index++] = button_widget;
     };
 
+    // PUSH WIDGET TO ROOT OF THE WINDOW
     ruin_Widget* root_widget = ctx->current_window->root_widget;
     if (root_widget->first_child == NULL) {
         root_widget->first_child = button_widget;
@@ -345,24 +402,6 @@ static B8 is_point_over_rect(ruin_Rect rect, ruin_Vec2 point);
 static ruin_Rect overlap_rect(ruin_Rect rect1, ruin_Rect rect2);
 static ruin_Rect expand_rect(ruin_Rect rect, int n);
 
-ruin_Rect make_rect(U32 x_pos, U32 y_pos, U32 height, U32 width) {
-  ruin_Rect res;
-  res.x = x_pos;
-  res.y = y_pos;
-  res.h = height;
-  res.w = width;
-
-  return res;
-};
-
-ruin_Vec2 make_vec2(U32 x_pos, U32 y_pos) {
-  ruin_Vec2 res;
-  res.x = x_pos;
-  res.y = y_pos;
-
-  return res;
-};
-
 ruin_Color make_color_hex(U32 color) {
   ruin_Color res = (ruin_Color) {
         .a=(color>>(8*0))&0xFF,
@@ -374,14 +413,5 @@ ruin_Color make_color_hex(U32 color) {
   return res;
 };
 
-ruin_Color make_color(U8 red, U8 green, U8 blue, U8 alpha) {
-  ruin_Color res;
-  res.r = red;
-  res.b = blue;
-  res.g = green;
-  res.a = alpha;
-
-  return res;
-};
-
 #endif
+

@@ -8,15 +8,14 @@ void CustomLog(int msgType, const char *text, va_list args) { return; }
 
 int main(void) {
     const int screenWidth = 800;
-    const int screenHeight = 450;
+    const int screenHeight = 800;
 
     SetTraceLogCallback(CustomLog); // call this before InitWindow()
     // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
     ruin_Context* ctx = create_ruin_context();
-
-
+    ruin_RaylibInit(ctx);
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
@@ -25,16 +24,15 @@ int main(void) {
 
        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){100, 50, 400, 400}, 0);
 
-       if (ruin_Button(ctx, "Ok")) {};
+       // if (ruin_Button(ctx, "Ok")) {};
+       // ruin_SameLine();
+       if (ruin_Button(ctx, "Contact me by tonight 9pm")) {};
+       // if (ruin_Button(ctx, "Ok3")) {};
+       // ruin_SameLine();
 
-       ruin_SameLine();
-       if (ruin_Button(ctx, "Ok2")) {};
-       if (ruin_Button(ctx, "Ok3")) {};
-       ruin_SameLine();
-
-       if (ruin_Button(ctx, "Ok11")) {};
-       if (ruin_Button(ctx, "Ok12")) {};
-       if (ruin_Button(ctx, "Ok13")) {};
+       // if (ruin_Button(ctx, "Ok11")) {};
+       // if (ruin_Button(ctx, "Ok12")) {};
+       // if (ruin_Button(ctx, "Ok13")) {};
        ruin_EndWindow(ctx);
 
        ruin_ComputeLayout(ctx);
