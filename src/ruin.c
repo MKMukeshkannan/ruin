@@ -243,8 +243,8 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
 
         root->draw_coords.x=ctx->current_window->window_rect.x;
         root->draw_coords.y=ctx->current_window->window_rect.y;
-        root->draw_coords.h=root->size[RUIN_AXISY].value;
-        root->draw_coords.w=root->size[RUIN_AXISX].value;
+        root->draw_coords.h=ctx->current_window->window_rect.y + root->size[RUIN_AXISY].value;
+        root->draw_coords.w=ctx->current_window->window_rect.x + root->size[RUIN_AXISX].value;
 
         root->partially_offset.x = 0;
         root->partially_offset.y = 0;
@@ -339,7 +339,6 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
                 // printf("%s: h=>%f w=>%f\n", current_top->text, current_top->fixed_size.x, current_top->fixed_size.y);
                 for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
-                    printf("%i\n", widget_stack->top);
                     widget_stack->items[++widget_stack->top] = i; 
                 }
             };
@@ -374,7 +373,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
        // POSITION DRAW CO-ORDS: drawposition
        {
-            // printf("\nPOSITIONS and DRAW CO-ORDS\n");
+            printf("\nPOSITIONS and DRAW CO-ORDS\n");
             widget_stack->items[++widget_stack->top] = root;
             while (widget_stack->top != -1) {
                 ruin_Widget* current_top = widget_stack->items[widget_stack->top];
@@ -388,11 +387,12 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                     current_top->draw_coords.w = current_top->fixed_size.x + current_top->parent->draw_coords.x + current_top->parent->partially_offset.x;
                     current_top->draw_coords.h = current_top->fixed_size.y + current_top->parent->draw_coords.y + current_top->parent->partially_offset.y;
                     
-                    current_top->parent->partially_offset.y = current_top->parent->draw_coords.y + current_top->draw_coords.h;
+                    current_top->parent->partially_offset.y += current_top->draw_coords.h - current_top->draw_coords.y;
+                    printf("\t parent offset y: %f\n", current_top->parent->partially_offset.y);
                 };
 
                 ruin_Rect rect = current_top->draw_coords;
-                // printf("%s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
+                printf("%s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
                 for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
                     widget_stack->items[++widget_stack->top] = i; 
                 }
