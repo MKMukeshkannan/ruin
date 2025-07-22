@@ -2,13 +2,15 @@
 
 ## Refactors
 - [ ] split ruin.c => ruin.h && ruin.c
+- [ ] make frame (generics)
+- [ ] string optimization (handle null terminated strings)
 
 ## Features
 ### v0.1
-- [ ] calculating text width and height
+- [x] calculating text width and height
 - [ ] signal stuff,
 - [ ] hover and click stuff
-- [ ] freetype
+- [x] freetype
 - [ ] opengl
 
 ## Bugs

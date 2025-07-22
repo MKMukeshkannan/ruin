@@ -6,15 +6,12 @@
 
 void CustomLog(int msgType, const char *text, va_list args) { return; }
 
-#define Stringify_(S) #S
-#define Stringify(S) Stringify_(S)
-
 int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 800;
 
     SetTraceLogCallback(CustomLog); // call this before InitWindow()
-    // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+                                    // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
     ruin_Context* ctx = create_ruin_context();
@@ -24,44 +21,37 @@ int main(void) {
     SetTargetFPS(60);
 
     const char* x = "xx";
+    bool y = false;
     while (!WindowShouldClose()) {
-       ClearBackground(RAYWHITE);
-        if (IsKeyDown(KEY_SPACE))   { 
-            x = "YY";
-        };
-        if (IsKeyUp(KEY_SPACE))   { 
-            x = "XX";
-        };
-        if (IsKeyDown(KEY_UP))   { 
-            printf("PRESSED!! %f \n", current);
-            current = MIN(to, current + 1); 
-        }
-        if (IsKeyDown(KEY_DOWN)) { 
-            printf("PRESSED!! %f \n", current);
-            current = MAX(from, current - 1); 
-        }
+        ClearBackground(RAYWHITE);
 
-       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=100, .y = 10, .h = 400, .w = 400, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        if (IsKeyDown(KEY_SPACE)) y = true;
+        if (IsKeyUp(KEY_SPACE)) y = false;
 
+        if (IsKeyDown(KEY_SPACE)) x = "xx";
+        if (IsKeyUp(KEY_SPACE)) x = "yy";
+        if (IsKeyDown(KEY_UP)) current = MIN(to, current + 1); 
+        if (IsKeyDown(KEY_DOWN)) current = MAX(from, current - 1); 
+
+        //
+        // START HIERARCHY
+        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=100, .y = 10, .h = 400, .w = 400, }, RUIN_WINDOWFLAGS_DRAGABLE);
+
+        ruin_Button(ctx, "Click");
+        ruin_ButtonToggle(ctx, "Toggle", &y);
         ruin_Label(ctx, "Inspector");
         ruin_Label(ctx, "Inspector2");
         ruin_Label(ctx, "Inspector3");
         ruin_Label(ctx, "Hello");
-        ruin_LabelDynamic(ctx, "Hello2", &x);
-       //  if (ruin_Button(ctx, "Contact me by tonight 9pm")) {};
-        if (ruin_Slider(ctx, "slider", &from, &to, &current)) {};
+        ruin_LabelDyn(ctx, "Hello2", &x);
 
-       //  if (ruin_Button(ctx, "Ok3")) {};
-       //  if (ruin_Button(ctx, "Ok13")) {};
-       ruin_EndWindow(ctx);
+        ruin_EndWindow(ctx);
+        // ENDS HIERARCHY
+        //
 
 
-
-
-       ruin_ComputeLayout(ctx);
-
-       ruin_RaylibRender(ctx);
-
+        ruin_ComputeLayout(ctx);
+        ruin_RaylibRender(ctx);
     };
     CloseWindow();
 
