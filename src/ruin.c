@@ -1,3 +1,8 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #ifndef RUIN_HEADER
 #define RUIN_HEADER
 
@@ -27,8 +32,7 @@ typedef struct ruin_Vec2        { F32 x, y; }                                   
 typedef struct ruin_Rect        { F32 x, y, h, w; }                                                                                          ruin_Rect;
 typedef struct ruin_Color       { U8 r, g, b, a; }                                                                                           ruin_Color;
 
-typedef struct ruin_CharInfo { S32 width; S32 rows; S32 bearingX; S32 bearingY; S32 advance; U8* buffer; } ruin_CharInfo;
-
+typedef struct ruin_CharInfo { U32 width; U32 rows; S32 bearingX; S32 bearingY; S64 advance; U8* buffer; } ruin_CharInfo;
 ruin_Color make_color_hex(U32 color);
 
 typedef struct ruin_DrawCall {
@@ -37,7 +41,7 @@ typedef struct ruin_DrawCall {
         struct ruin_DrawRect { ruin_Rect rect; ruin_Color color; } draw_rect;
         struct ruin_DrawClip { ruin_Rect rect; } draw_clip;
         struct ruin_DrawText { char* text; ruin_Vec2 pos; } draw_text;
-    };
+    } draw_info_union;
 } ruin_DrawCall;
 
 typedef struct ruin_Widget                                                   ruin_Widget;
@@ -106,7 +110,7 @@ ruin_Context* create_ruin_context() {
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
-    ruin_Context* ctx = arena_alloc(&arena, sizeof(ruin_Context));
+    ruin_Context* ctx = (ruin_Context*)arena_alloc(&arena, sizeof(ruin_Context));
 
     MEM_ZERO(ctx, sizeof(ruin_Context));
     ctx->arena = arena;
@@ -131,7 +135,7 @@ ruin_Context* create_ruin_context() {
         }
 
         size_t total_pixels = face->glyph->bitmap.width * face->glyph->bitmap.rows;
-        U8* gray_alpha_data = malloc(total_pixels * 2); 
+        U8* gray_alpha_data = (U8*)malloc(total_pixels * 2); 
         for (size_t i = 0; i < total_pixels; i++) {
             gray_alpha_data[i * 2 + 0] = face->glyph->bitmap.buffer[i];
             gray_alpha_data[i * 2 + 1] =  (face->glyph->bitmap.buffer[i] < 0) ? 0 : face->glyph->bitmap.buffer[i];
@@ -160,7 +164,7 @@ typedef struct {
 } ruin_WidgetStack;
 
 internal ruin_WidgetStack* create_stack(Temp_Arena_Memory temp) {
-    ruin_WidgetStack* stack = arena_alloc(temp.arena, sizeof(ruin_WidgetStack));
+    ruin_WidgetStack* stack = (ruin_WidgetStack*)arena_alloc(temp.arena, sizeof(ruin_WidgetStack));
     MEM_ZERO(stack, sizeof(ruin_WidgetStack));
     stack->top = -1;
     return stack; 
@@ -211,7 +215,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     ruin_Window* window = get_window_by_id(ctx, id);
 
     if (window == NULL) {
-        window = arena_alloc(&ctx->arena, sizeof(ruin_Window));
+        window = (ruin_Window*)arena_alloc(&ctx->arena, sizeof(ruin_Window));
         MEM_ZERO(window, sizeof(ruin_Window));
 
         window->id = id;
@@ -228,7 +232,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     ruin_Id root_id = hash_string("root##default");
     ruin_Widget* root = get_widget_by_id(ctx, root_id);
     if (root == NULL) {
-        root = arena_alloc(&ctx->arena, sizeof(ruin_Widget));
+        root = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         MEM_ZERO(root, sizeof(ruin_Widget));
 
         root->id = root_id;
@@ -300,7 +304,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
         // COMPUTE RAW SIZE
         {
-            printf("\nRAW SIZEZZ \n");
+            // printf("\nRAW SIZEZZ \n");
 
             widget_stack->items[++widget_stack->top] = root;
             while (widget_stack->top != -1) {
@@ -333,10 +337,10 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                     current_top->fixed_size.y = length;
                 };
 
-                printf("%s: h=>%f w=>%f\n", current_top->text, current_top->fixed_size.x, current_top->fixed_size.y);
+                // printf("%s: h=>%f w=>%f\n", current_top->text, current_top->fixed_size.x, current_top->fixed_size.y);
                 for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { widget_stack->items[++widget_stack->top] = i; }
             };
-            printf("\n");
+            // printf("\n");
             widget_stack->top = -1;
         }
 
@@ -367,7 +371,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
        // POSITION DRAW CO-ORDS: drawposition
        {
-            printf("\nPOSITIONS and DRAW CO-ORDS\n");
+            // printf("\nPOSITIONS and DRAW CO-ORDS\n");
             widget_stack->items[++widget_stack->top] = root;
             while (widget_stack->top != -1) {
                 ruin_Widget* current_top = widget_stack->items[widget_stack->top];
@@ -398,7 +402,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
        // PRINT DRAW CO-ORDS
        {
-            printf("\nDRAW CO-ORDS\n");
+            // printf("\nDRAW CO-ORDS\n");
             widget_stack->items[++widget_stack->top] = root;
             while (widget_stack->top != -1) {
                 ruin_Widget* current_top = widget_stack->items[widget_stack->top];
@@ -407,16 +411,23 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
                 ruin_Rect rect = current_top->draw_coords;
                 // DO YOUR STUFF
-                printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
+                // printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
                 ctx->draw_queue.items[ctx->draw_queue.index++] = (ruin_DrawCall) {
                     .type = RUIN_DRAWTYPE_RECT,
-                    .draw_rect = rect
+                    .draw_info_union = {
+                        .draw_rect = {
+                            .rect = rect,
+                            .color = current_top->background,
+                        }
+                    }
                 };
                ctx->draw_queue.items[ctx->draw_queue.index++] = (ruin_DrawCall) {
                    .type = RUIN_DRAWTYPE_TEXT,
-                   .draw_text = {
-                       .text = current_top->text,
-                       .pos = {.x = rect.x, .y = rect.y}
+                   .draw_info_union = {
+                        .draw_text = {
+                            .text = current_top->text,
+                            .pos = {.x = rect.x, .y = rect.y}
+                        }
                    }
                };
 
@@ -440,7 +451,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
 
 
-        printf("\n");
+        // printf("\n");
 
     };
 
@@ -457,7 +468,7 @@ B8 ruin_Label(ruin_Context* ctx, char* label) {
 
     // ALLOCATE and CREATE BUTTON FOR THE FIRST TIME
     if (button_widget == NULL) {
-        button_widget = arena_alloc(&ctx->arena, sizeof(ruin_Widget));
+        button_widget = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         button_widget->id = id;
         button_widget->text = label;
         button_widget->size[RUIN_AXISX] = (ruin_Size) {
@@ -470,10 +481,11 @@ B8 ruin_Label(ruin_Context* ctx, char* label) {
             .value = 0,
             .strictness = 1,
         };
-        button_widget->background = make_color_hex(0x000FFFFF);
+        button_widget->background = make_color_hex(0xFFFFFFFF);
         button_widget->foreground = make_color_hex(0x000FFFFF);
         ctx->widgets.items[ctx->widgets.index++] = button_widget;
     };
+    button_widget->text = label;
 
     // PUSH WIDGET TO ROOT OF THE WINDOW
     ruin_Widget* root_widget = ctx->current_window->root_widget;
@@ -503,13 +515,15 @@ B8 ruin_Label(ruin_Context* ctx, char* label) {
     return false;
 };
 
-B8 ruin_Slider(ruin_Context* ctx, char* label, U32* from, U32* to, U32* current) {
+B8 ruin_Slider(ruin_Context* ctx, char* label, F32* from, F32* to, F32* current) {
     ruin_Id id = hash_string(label);
     ruin_Widget* slider_widget = get_widget_by_id(ctx, id);
 
     // ALLOCATE and CREATE BUTTON FOR THE FIRST TIME
+    float value = (float)(*current - *from) / (*to - *from);
+    printf("VALUDE!! %f\n", value);
     if (slider_widget == NULL) {
-        slider_widget = arena_alloc(&ctx->arena, sizeof(ruin_Widget));
+        slider_widget = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         slider_widget->id = id;
         slider_widget->text = label;
         slider_widget->size[RUIN_AXISX] = (ruin_Size) {
@@ -526,32 +540,34 @@ B8 ruin_Slider(ruin_Context* ctx, char* label, U32* from, U32* to, U32* current)
         slider_widget->foreground = make_color_hex(0x000000FF);
         ctx->widgets.items[ctx->widgets.index++] = slider_widget;
 
-        ruin_Widget* slider_indicator = arena_alloc(&ctx->arena, sizeof(ruin_Widget));
-        float value = (float)(*current - *from) / (*to - *from);
-        slider_indicator->text = "";
+        ruin_Widget* slider_indicator = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         slider_indicator->id = 1234;
         slider_indicator->size[RUIN_AXISX] = (ruin_Size) {
             .kind = RUIN_SIZEKIND_PARENTPERCENTAGE,
             .value = value,
             .strictness = 1,
         };
+        slider_indicator->text = "xxx";
         slider_indicator->size[RUIN_AXISY] = (ruin_Size) {
             .kind = RUIN_SIZEKIND_PIXEL,
             .value = 20,
             .strictness = 1,
         };
 
-
         slider_widget->last_child = slider_indicator;
         slider_widget->first_child = slider_indicator;
-        slider_indicator->background = make_color_hex(0xFFFFFFFF);
+        slider_indicator->background = make_color_hex(0xFFF00FFF);
 
         slider_indicator->parent = slider_widget;
         slider_indicator->next_sibling = NULL;
         slider_indicator->prev_sibling = NULL;
-
-
     };
+
+    slider_widget->first_child->size[RUIN_AXISX] = (ruin_Size) {
+            .kind = RUIN_SIZEKIND_PARENTPERCENTAGE,
+            .value = value,
+            .strictness = 1,
+        };
 
     // PUSH WIDGET TO ROOT OF THE WINDOW
     ruin_Widget* root_widget = ctx->current_window->root_widget;
@@ -585,7 +601,7 @@ B8 ruin_Button(ruin_Context* ctx, char* label) {
 
     // ALLOCATE and CREATE BUTTON FOR THE FIRST TIME
     if (button_widget == NULL) {
-        button_widget = arena_alloc(&ctx->arena, sizeof(ruin_Widget));
+        button_widget = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         button_widget->id = id;
         button_widget->text = label;
         button_widget->size[RUIN_AXISX] = (ruin_Size) {
@@ -637,10 +653,10 @@ static ruin_Rect expand_rect(ruin_Rect rect, int n);
 
 ruin_Color make_color_hex(U32 color) {
   ruin_Color res = (ruin_Color) {
-        .a=(color>>(8*0))&0xFF,
-        .b=(color>>(8*1))&0xFF,
-        .g=(color>>(8*2))&0xFF,
-        .r=(color>>(8*3))&0xFF,
+        (U8)((color >> (8 * 0)) & 0xFF),  // a
+        (U8)((color >> (8 * 1)) & 0xFF),  // b
+        (U8)((color >> (8 * 2)) & 0xFF),  // g
+        (U8)((color >> (8 * 3)) & 0xFF)   // r
   };
 
   return res;
@@ -648,3 +664,7 @@ ruin_Color make_color_hex(U32 color) {
 
 #endif
 
+
+#ifdef __cplusplus
+}
+#endif

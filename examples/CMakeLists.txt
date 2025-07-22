@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.31)
 project(ruin-example)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(SOURCES ./ruin_with_raylib.c)
+set(SOURCES ./ruin_with_raylib.cpp)
 
 message("COMPILING EXAMPLES 📃")
 

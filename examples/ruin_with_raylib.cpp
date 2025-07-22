@@ -6,6 +6,9 @@
 
 void CustomLog(int msgType, const char *text, va_list args) { return; }
 
+#define Stringify_(S) #S
+#define Stringify(S) Stringify_(S)
+
 int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 800;
@@ -17,19 +20,27 @@ int main(void) {
     ruin_Context* ctx = create_ruin_context();
     ruin_RaylibInit(ctx);
 
-    U32 from = 0, to = 100, current = 30;
-
+    F32 from = 0, to = 100, current = 30;
     SetTargetFPS(60);
+
+    ruin_Rect rect = {0, 0, 400, 400};
     while (!WindowShouldClose()) {
        ClearBackground(RAYWHITE);
+        if (IsKeyDown(KEY_UP))   { 
+            printf("PRESSED!! %f \n", current);
+            current = MIN(to, current + 1); 
+        }
+        if (IsKeyDown(KEY_DOWN)) { 
+            printf("PRESSED!! %f \n", current);
+            current = MAX(from, current - 1); 
+        }
 
-
-       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){0, 0, 400, 400}, 0);
+       ruin_BeginWindow(ctx, "Inspector", rect, RUIN_WINDOWFLAGS_DRAGABLE);
 
         ruin_Label(ctx, "Inspector");
         ruin_Label(ctx, "Inspector2");
         ruin_Label(ctx, "Inspector3");
-        ruin_Label(ctx, "Inspector4");
+        ruin_Label(ctx, "Hello");
        //  if (ruin_Button(ctx, "Contact me by tonight 9pm")) {};
         if (ruin_Slider(ctx, "slider", &from, &to, &current)) {};
 

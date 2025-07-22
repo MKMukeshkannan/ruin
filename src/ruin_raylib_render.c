@@ -40,11 +40,11 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
         current_char = font[string[i]];
         float xpos = x + current_char.bearingX * scale;
         float ypos = y - current_char.bearingY * scale;
-        float w = current_char.width * scale;
-        float h = current_char.rows * scale;
+        float w    = current_char.width * scale;
+        float h    = current_char.rows * scale;
 
         DrawTexturePro(font_texture[string[i]], 
-                       (Rectangle) {.x=0, .y=0, .height=current_char.rows, .width=current_char.width}, 
+                       (Rectangle) {.x=0, .y=0, .height=(float)current_char.rows, .width=(float)current_char.width}, 
                        (Rectangle) {.x=xpos, .y=ypos, .height=h, .width=w}, 
                        (Vector2){}, 
                        0.0f, 
@@ -53,7 +53,7 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
         x += (current_char.advance >> 6) * scale;
         ++i;
     };
-    printf("\n");
+    // printf("\n");
 };
 
 void ruin_RaylibRender(ruin_Context* ctx) {
@@ -65,14 +65,14 @@ void ruin_RaylibRender(ruin_Context* ctx) {
    for (int i = 0; i < ctx->draw_queue.index; ++i) {
        switch (ctx->draw_queue.items[i].type) {
            case RUIN_DRAWTYPE_RECT: { 
-               ruin_Rect rect = ctx->draw_queue.items[i].draw_rect.rect;
-               ruin_Color color = ctx->draw_queue.items[i].draw_rect.color;
+               ruin_Rect rect = ctx->draw_queue.items[i].draw_info_union.draw_rect.rect;
+               ruin_Color color = ctx->draw_queue.items[i].draw_info_union.draw_rect.color;
                DrawRectangle(rect.x, rect.y, rect.w - rect.x, rect.h - rect.y, (Color) { .a=color.a, .r=color.r, .b=color.b, .g=color.g, });
                DrawRectangleLinesEx((Rectangle) { .x=rect.x, .y=rect.y, .width=rect.w - rect.x, .height=rect.h - rect.y, }, 1, BLACK);
            } break;
            case RUIN_DRAWTYPE_TEXT: { 
-               ruin_Vec2 pos = ctx->draw_queue.items[i].draw_text.pos;
-               ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
+               ruin_Vec2 pos = ctx->draw_queue.items[i].draw_info_union.draw_text.pos;
+               ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
            } break;
            case RUIN_DRAWTYPE_CLIP: {  } break;
        };
