@@ -35,7 +35,7 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
     ruin_CharInfo current_char;
     size_t i = 0;
 
-    y+=15;
+    y+=36;
     while (string[i] != '\0') {
         current_char = font[string[i]];
         float xpos = x + current_char.bearingX * scale;
@@ -58,6 +58,8 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
 
 void ruin_RaylibRender(ruin_Context* ctx) {
 
+
+    BeginDrawing();
     ruin_CharInfo* char_info = ctx->font;
 
    for (int i = 0; i < ctx->draw_queue.index; ++i) {
@@ -65,10 +67,8 @@ void ruin_RaylibRender(ruin_Context* ctx) {
            case RUIN_DRAWTYPE_RECT: { 
                ruin_Rect rect = ctx->draw_queue.items[i].draw_rect.rect;
                ruin_Color color = ctx->draw_queue.items[i].draw_rect.color;
-
-               DrawRectangle(rect.x, rect.y, rect.w, rect.h - rect.y, (Color) { .a=color.a, .r=color.r, .b=color.b, .g=color.g, });
-               DrawRectangleLinesEx((Rectangle) { .x=rect.x, .y=rect.y, .width=rect.w, .height=rect.h - rect.y, }, 1, BLACK);
-
+               DrawRectangle(rect.x, rect.y, rect.w - rect.x, rect.h - rect.y, (Color) { .a=color.a, .r=color.r, .b=color.b, .g=color.g, });
+               DrawRectangleLinesEx((Rectangle) { .x=rect.x, .y=rect.y, .width=rect.w - rect.x, .height=rect.h - rect.y, }, 1, BLACK);
            } break;
            case RUIN_DRAWTYPE_TEXT: { 
                ruin_Vec2 pos = ctx->draw_queue.items[i].draw_text.pos;
@@ -77,6 +77,9 @@ void ruin_RaylibRender(ruin_Context* ctx) {
            case RUIN_DRAWTYPE_CLIP: {  } break;
        };
    };
+   ctx->draw_queue.index = 0;
+
+    EndDrawing();
 };
 
 

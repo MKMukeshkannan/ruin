@@ -17,29 +17,32 @@ int main(void) {
     ruin_Context* ctx = create_ruin_context();
     ruin_RaylibInit(ctx);
 
+    U32 from = 0, to = 100, current = 30;
+
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
        ClearBackground(RAYWHITE);
 
 
-       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){100, 50, 400, 400}, 0);
+       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect){0, 0, 400, 400}, 0);
 
-       // if (ruin_Button(ctx, "Ok")) {};
-       // ruin_SameLine();
-       if (ruin_Button(ctx, "Contact me by tonight 9pm")) {};
-       // if (ruin_Button(ctx, "Ok3")) {};
-       // ruin_SameLine();
+        ruin_Label(ctx, "Inspector");
+        ruin_Label(ctx, "Inspector2");
+        ruin_Label(ctx, "Inspector3");
+        ruin_Label(ctx, "Inspector4");
+       //  if (ruin_Button(ctx, "Contact me by tonight 9pm")) {};
+        if (ruin_Slider(ctx, "slider", &from, &to, &current)) {};
 
-       // if (ruin_Button(ctx, "Ok11")) {};
-       // if (ruin_Button(ctx, "Ok12")) {};
-       // if (ruin_Button(ctx, "Ok13")) {};
+       //  if (ruin_Button(ctx, "Ok3")) {};
+       //  if (ruin_Button(ctx, "Ok13")) {};
        ruin_EndWindow(ctx);
+
+
+
 
        ruin_ComputeLayout(ctx);
 
-       BeginDrawing();
        ruin_RaylibRender(ctx);
-       EndDrawing();
 
     };
     CloseWindow();
