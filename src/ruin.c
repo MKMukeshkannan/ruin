@@ -40,7 +40,7 @@ typedef struct ruin_DrawCall {
     union {
         struct ruin_DrawRect { ruin_Rect rect; ruin_Color color; } draw_rect;
         struct ruin_DrawClip { ruin_Rect rect; } draw_clip;
-        struct ruin_DrawText { char* text; ruin_Vec2 pos; } draw_text;
+        struct ruin_DrawText { const char* text; ruin_Vec2 pos; } draw_text;
     } draw_info_union;
 } ruin_DrawCall;
 
@@ -57,7 +57,7 @@ struct ruin_Widget {
     ruin_Widget *prev_sibling;
     ruin_Widget *parent;
 
-    char* text;
+    const char* text;
     char flags;
     ruin_Id id;
 
@@ -338,7 +338,10 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 };
 
                 // printf("%s: h=>%f w=>%f\n", current_top->text, current_top->fixed_size.x, current_top->fixed_size.y);
-                for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { widget_stack->items[++widget_stack->top] = i; }
+                for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
+                    printf("%i\n", widget_stack->top);
+                    widget_stack->items[++widget_stack->top] = i; 
+                }
             };
             // printf("\n");
             widget_stack->top = -1;
@@ -462,7 +465,60 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
 void ruin_SameLine() { };
 
-B8 ruin_Label(ruin_Context* ctx, char* label) {
+B8 ruin_LabelDynamic(ruin_Context* ctx, const char* label, const char** display) {
+    ruin_Id id = hash_string(label);
+    ruin_Widget* button_widget = get_widget_by_id(ctx, id);
+
+    // ALLOCATE and CREATE BUTTON FOR THE FIRST TIME
+    if (button_widget == NULL) {
+        button_widget = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
+        button_widget->id = id;
+        button_widget->text = label;
+        button_widget->size[RUIN_AXISX] = (ruin_Size) {
+            .kind = RUIN_SIZEKIND_TEXTCONTENT,
+            .value = 0,
+            .strictness = 1,
+        };
+        button_widget->size[RUIN_AXISY] = (ruin_Size) {
+            .kind = RUIN_SIZEKIND_TEXTCONTENT,
+            .value = 0,
+            .strictness = 1,
+        };
+        button_widget->background = make_color_hex(0xFFFFFFFF);
+        button_widget->foreground = make_color_hex(0x000FFFFF);
+        ctx->widgets.items[ctx->widgets.index++] = button_widget;
+    };
+    button_widget->text = *display;
+
+    // PUSH WIDGET TO ROOT OF THE WINDOW
+    ruin_Widget* root_widget = ctx->current_window->root_widget;
+    if (root_widget->first_child == NULL) {
+        button_widget->first_child = NULL;
+        button_widget->next_sibling = NULL;
+        button_widget->prev_sibling = NULL;
+        button_widget->parent = root_widget;
+
+        root_widget->first_child = button_widget;
+        root_widget->last_child = button_widget;
+    } else {
+        ruin_Widget* temp = root_widget->first_child;
+        while (temp->next_sibling != NULL) {
+            temp = temp->next_sibling;
+        };
+
+        temp->next_sibling = button_widget;
+        button_widget->prev_sibling = temp;
+        button_widget->next_sibling = NULL;
+        button_widget->parent = root_widget;
+        button_widget->first_child = NULL;
+        button_widget->last_child = NULL;
+        root_widget->last_child = button_widget;
+    };
+
+    return false;
+}
+
+B8 ruin_Label(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
 
@@ -515,13 +571,12 @@ B8 ruin_Label(ruin_Context* ctx, char* label) {
     return false;
 };
 
-B8 ruin_Slider(ruin_Context* ctx, char* label, F32* from, F32* to, F32* current) {
+B8 ruin_Slider(ruin_Context* ctx, const char* label, F32* from, F32* to, F32* current) {
     ruin_Id id = hash_string(label);
     ruin_Widget* slider_widget = get_widget_by_id(ctx, id);
 
     // ALLOCATE and CREATE BUTTON FOR THE FIRST TIME
     float value = (float)(*current - *from) / (*to - *from);
-    printf("VALUDE!! %f\n", value);
     if (slider_widget == NULL) {
         slider_widget = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
         slider_widget->id = id;
@@ -556,7 +611,7 @@ B8 ruin_Slider(ruin_Context* ctx, char* label, F32* from, F32* to, F32* current)
 
         slider_widget->last_child = slider_indicator;
         slider_widget->first_child = slider_indicator;
-        slider_indicator->background = make_color_hex(0xFFF00FFF);
+        slider_indicator->background = make_color_hex(0xFF00FFFF);
 
         slider_indicator->parent = slider_widget;
         slider_indicator->next_sibling = NULL;
@@ -595,7 +650,7 @@ B8 ruin_Slider(ruin_Context* ctx, char* label, F32* from, F32* to, F32* current)
 };
 
 
-B8 ruin_Button(ruin_Context* ctx, char* label) {
+B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
 

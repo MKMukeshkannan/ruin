@@ -23,9 +23,15 @@ int main(void) {
     F32 from = 0, to = 100, current = 30;
     SetTargetFPS(60);
 
-    ruin_Rect rect = {0, 0, 400, 400};
+    const char* x = "xx";
     while (!WindowShouldClose()) {
        ClearBackground(RAYWHITE);
+        if (IsKeyDown(KEY_SPACE))   { 
+            x = "YY";
+        };
+        if (IsKeyUp(KEY_SPACE))   { 
+            x = "XX";
+        };
         if (IsKeyDown(KEY_UP))   { 
             printf("PRESSED!! %f \n", current);
             current = MIN(to, current + 1); 
@@ -35,12 +41,13 @@ int main(void) {
             current = MAX(from, current - 1); 
         }
 
-       ruin_BeginWindow(ctx, "Inspector", rect, RUIN_WINDOWFLAGS_DRAGABLE);
+       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=100, .y = 10, .h = 400, .w = 400, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
         ruin_Label(ctx, "Inspector");
         ruin_Label(ctx, "Inspector2");
         ruin_Label(ctx, "Inspector3");
         ruin_Label(ctx, "Hello");
+        ruin_LabelDynamic(ctx, "Hello2", &x);
        //  if (ruin_Button(ctx, "Contact me by tonight 9pm")) {};
         if (ruin_Slider(ctx, "slider", &from, &to, &current)) {};
 
