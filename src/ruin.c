@@ -279,6 +279,13 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
 
         root->flags |= RUIN_WIDGETFLAGS_DRAW_BORDER;
 
+        root->padding = (ruin_Direction) {
+            .left = 20,
+            .right = 20,
+            .top = 20,
+            .bottom = 20,
+        };
+
         ctx->widgets.items[ctx->widgets.index++] = root;
     };
     root->first_child = NULL;
@@ -418,12 +425,15 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
                     current_top->draw_coords.bbox.w = 
                         current_top->padding.left 
+                        + current_top->parent->padding.right
                         + current_top->padding.right 
                         + current_top->fixed_size.x 
                         + current_top->parent->draw_coords.bbox.x 
                         + current_top->parent->partially_offset.x;
+
                     current_top->draw_coords.bbox.h = 
                         current_top->padding.top 
+                        + current_top->parent->padding.bottom
                         + current_top->padding.bottom
                         + current_top->fixed_size.y 
                         + current_top->parent->draw_coords.bbox.y 
