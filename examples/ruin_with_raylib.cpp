@@ -23,6 +23,10 @@ int main(void) {
     const char* x = "xx";
     bool y = false;
     while (!WindowShouldClose()) {
+
+        Vector2 m_pos = GetMousePosition();
+        ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
+
         ClearBackground(RAYWHITE);
 
         if (IsKeyDown(KEY_SPACE)) y = true;
@@ -48,6 +52,7 @@ int main(void) {
 
         ruin_ComputeLayout(ctx);
         ruin_RaylibRender(ctx);
+        ctx->frame++;
     };
     CloseWindow();
 

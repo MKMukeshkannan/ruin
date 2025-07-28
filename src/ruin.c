@@ -121,6 +121,7 @@ typedef struct {
     ruin_Vec2 mouse_position;
     ruin_Id hot;
     ruin_Id active;
+    U64 frame;
 } ruin_Context;
 
 
@@ -571,18 +572,31 @@ B8 ruin_Label(ruin_Context* ctx, const char* label) {
     return false;
 };
 
+bool clicked(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
+    return mouse_position.x >= rectangle.x &&
+           mouse_position.x <= rectangle.w &&
+           mouse_position.y >= rectangle.y &&
+           mouse_position.y <= rectangle.h;
+}
+
+
 B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) label_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
-    label_widget->padding = (ruin_Direction) {
-        .left = 16,
-        .right = 16,
-        .top = 8,
-        .bottom = 8,
-    };
-    push_widget_narry(ctx->current_window->root_widget, label_widget);
 
+
+    ruin_Rect rect = label_widget->draw_coords.bbox;
+    ruin_Vec2 mouse_position = ctx->mouse_position;
+    label_widget->padding = (ruin_Direction) { .left = 16, .right = 16, .top = 8, .bottom = 8, };
+
+    if (clicked(rect, mouse_position)) {
+        label_widget->background = (ruin_Color) { .r=220, .g=220, .b=220, .a=255 };
+    } else {
+        label_widget->background = (ruin_Color) { .r=250, .g=250, .b=250, .a=255 };
+    };
+
+    push_widget_narry(ctx->current_window->root_widget, label_widget);
     return false;
 };
 

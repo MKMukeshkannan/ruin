@@ -51,11 +51,9 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
                        0.0f, 
                        BLACK);
 
-        printf("%f ", y);
         x += (current_char.advance >> 6) * scale;
         ++i;
     };
-    printf("\n");
 };
 
 void ruin_RaylibRender(ruin_Context* ctx) {
