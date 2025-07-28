@@ -37,10 +37,9 @@ int main(void) {
         // START HIERARCHY
         ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=100, .y = 10, .h = 400, .w = 400, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
-        ruin_Button(ctx, "Click");
+        ruin_Button(ctx, "Clicky");
         ruin_ButtonToggle(ctx, "Toggle", &y);
-        ruin_Label(ctx, "Hello");
-        ruin_LabelDyn(ctx, "Hello2", &x);
+        ruin_Label(ctx, "Helloy");
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY

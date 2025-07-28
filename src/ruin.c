@@ -17,6 +17,11 @@ extern "C" {
 #define WINDOW_ARRAY    20
 #define DRAW_QUEUE_SIZE 20
 
+
+
+// LAYOUT
+#define ROW_SPACING      5
+
 // HEADER MESS
 typedef U32    ruin_Id; 
 typedef enum   ruin_SizeKind    { RUIN_SIZEKIND_PIXEL, RUIN_SIZEKIND_TEXTCONTENT, RUIN_SIZEKIND_PARENTPERCENTAGE, RUIN_SIZEKIND_CHILDRENSUM } ruin_SizeKind;
@@ -55,7 +60,10 @@ struct ruin_Widget {
     ruin_Size size[RUIN_AXISCOUNT];
     ruin_Vec2 fixed_size;
     ruin_Vec2 partially_offset;
-    ruin_Rect draw_coords;
+    struct ruin_DrawCoords {
+        ruin_Rect bbox;
+        ruin_Vec2 text_pos;
+    } draw_coords;
 
     ruin_Widget *first_child;
     ruin_Widget *last_child;
@@ -106,6 +114,8 @@ typedef struct {
     Arena arena; // persisted arena, across frames
     ruin_Window* current_window;
 
+    float font_size;
+    float highest_bearing_y; // lenght of the tallest character from base line, use to make top left as orgin
     ruin_CharInfo font[128];
 
     ruin_Vec2 mouse_position;
@@ -126,16 +136,18 @@ ruin_Context* create_ruin_context() {
     ctx->widgets.index = 0;
     ctx->windows.index = 0;
 
+    ctx->font_size = (ctx->font_size == 0) ? 14 : ctx->font_size;
+
     FT_Library ft;
     if (FT_Init_FreeType(&ft)) {
         fprintf(stderr, "Freetype Init Problem");
     };
 
     FT_Face face;
-    if (FT_New_Face(ft, "inter.ttf", 0, &face)) {
+    if (FT_New_Face(ft, "jetbrains.ttf", 0, &face)) {
         fprintf(stderr, "Freetype Face Creation Problem");
     };
-    FT_Set_Pixel_Sizes(face, 0, 16);
+    FT_Set_Pixel_Sizes(face, 0, ctx->font_size);
 
     for (unsigned char c = 0; c < 128; c++) {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
@@ -147,8 +159,10 @@ ruin_Context* create_ruin_context() {
         U8* gray_alpha_data = (U8*)malloc(total_pixels * 2); 
         for (size_t i = 0; i < total_pixels; i++) {
             gray_alpha_data[i * 2 + 0] = face->glyph->bitmap.buffer[i];
-            gray_alpha_data[i * 2 + 1] =  (face->glyph->bitmap.buffer[i] < 0) ? 0 : face->glyph->bitmap.buffer[i];
+            gray_alpha_data[i * 2 + 1] = (face->glyph->bitmap.buffer[i] < 0) ? 0 : face->glyph->bitmap.buffer[i];
         };
+
+        // printf("%zu %i\n", (face->glyph->metrics.height >> 6), face->glyph->bitmap.rows);
 
         ctx->font[c] = (ruin_CharInfo) {
             .width = face->glyph->bitmap.width,
@@ -158,8 +172,10 @@ ruin_Context* create_ruin_context() {
             .advance = face->glyph->advance.x,
             .buffer = gray_alpha_data,
         };
-
     }
+
+    ctx->highest_bearing_y = ctx->font[108].bearingY;
+
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
@@ -250,10 +266,13 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         root->text = "root##default";
         root->background = make_color_hex(0xFFFFFFFF);
 
-        root->draw_coords.x=ctx->current_window->window_rect.x;
-        root->draw_coords.y=ctx->current_window->window_rect.y;
-        root->draw_coords.h=ctx->current_window->window_rect.y + root->size[RUIN_AXISY].value;
-        root->draw_coords.w=ctx->current_window->window_rect.x + root->size[RUIN_AXISX].value;
+        root->draw_coords.bbox.x = ctx->current_window->window_rect.x;
+        root->draw_coords.bbox.y = ctx->current_window->window_rect.y;
+        root->draw_coords.bbox.h = ctx->current_window->window_rect.y + root->size[RUIN_AXISY].value;
+        root->draw_coords.bbox.w = ctx->current_window->window_rect.x + root->size[RUIN_AXISX].value;
+
+        root->draw_coords.text_pos.x = root->draw_coords.bbox.x;
+        root->draw_coords.text_pos.y = root->draw_coords.bbox.y;
 
         root->partially_offset.x = 0;
         root->partially_offset.y = 0;
@@ -287,13 +306,9 @@ F32 ruin_GetWidth(ruin_Context* ctx, const char* string) {
 
 F32 ruin_GetHeight(ruin_Context* ctx, const char* string) {
     int i = 0;
-    F32 min_y = 0.0f;
-    F32 max_y = 0.0f;
     F32 rows = 0.0f;
     ruin_CharInfo* font = ctx->font;
     while (string[i] != '\0') {
-        min_y = MIN(font[string[i]].bearingY, min_y);
-        max_y = MAX(font[string[i]].bearingY, max_y);
         rows = MAX(font[string[i]].rows, rows);
         ++i;
     };
@@ -383,7 +398,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
        // POSITION DRAW CO-ORDS: drawposition
        {
-            printf("\nPOSITIONS and DRAW CO-ORDS\n");
+            // printf("\nPOSITIONS and DRAW CO-ORDS\n");
             widget_stack->items[++widget_stack->top] = root;
             while (widget_stack->top != -1) {
                 ruin_Widget* current_top = widget_stack->items[widget_stack->top];
@@ -392,25 +407,37 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
                 // DO YOUR STUFF
                 if (current_top->parent != NULL) {
-                    current_top->draw_coords.x = current_top->parent->draw_coords.x + current_top->parent->partially_offset.x;
-                    current_top->draw_coords.y = current_top->parent->draw_coords.y + current_top->parent->partially_offset.y;
-                    current_top->draw_coords.w = current_top->padding.left 
+                    current_top->draw_coords.bbox.x = 
+                        current_top->parent->padding.left
+                        + current_top->parent->draw_coords.bbox.x 
+                        + current_top->parent->partially_offset.x;
+                    current_top->draw_coords.bbox.y = 
+                        current_top->parent->padding.top
+                        + current_top->parent->draw_coords.bbox.y 
+                        + current_top->parent->partially_offset.y;
+
+                    current_top->draw_coords.bbox.w = 
+                        current_top->padding.left 
                         + current_top->padding.right 
                         + current_top->fixed_size.x 
-                        + current_top->parent->draw_coords.x 
+                        + current_top->parent->draw_coords.bbox.x 
                         + current_top->parent->partially_offset.x;
-                    current_top->draw_coords.h = current_top->padding.top 
+                    current_top->draw_coords.bbox.h = 
+                        current_top->padding.top 
                         + current_top->padding.bottom
                         + current_top->fixed_size.y 
-                        + current_top->parent->draw_coords.y 
+                        + current_top->parent->draw_coords.bbox.y 
                         + current_top->parent->partially_offset.y;
                     
-                    current_top->parent->partially_offset.y += current_top->draw_coords.h - current_top->draw_coords.y;
-                    printf("\t parent offset y: %f\n", current_top->parent->partially_offset.y);
+                    current_top->draw_coords.text_pos.x = current_top->draw_coords.bbox.x + current_top->padding.left;
+                    current_top->draw_coords.text_pos.y = current_top->draw_coords.bbox.y + current_top->padding.top;
+                    
+                    current_top->parent->partially_offset.y += current_top->draw_coords.bbox.h - current_top->draw_coords.bbox.y + ROW_SPACING;
+                    // printf("\t parent offset y: %f\n", current_top->parent->partially_offset.y);
                 };
 
-                ruin_Rect rect = current_top->draw_coords;
-                printf("%s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
+                ruin_Rect rect = current_top->draw_coords.bbox;
+                //printf("%s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
                 for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
                     widget_stack->items[++widget_stack->top] = i; 
                 }
@@ -430,7 +457,8 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 widget_stack->top--;
 
 
-                ruin_Rect rect = current_top->draw_coords;
+                ruin_Rect rect = current_top->draw_coords.bbox;
+                ruin_Vec2 text_pos = current_top->draw_coords.text_pos;
                 // DO YOUR STUFF
                 // printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
                 ctx->draw_queue.items[ctx->draw_queue.index++] = (ruin_DrawCall) {
@@ -449,21 +477,11 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                         .draw_info_union = {
                              .draw_text = {
                                  .text = current_top->text,
-                                 .pos = {.x = rect.x, .y = rect.y}
+                                 .pos = {.x = text_pos.x, .y = text_pos.y}
                              }
                         }
                     };
                 }
-
-//             root##default    => x:100.000000, y:50.000000, w:400.000000, h:400.000000
-//             Inspector        => x:100.000000, y:50.000000, w:160.000000, h:98.000000
-//             Contact me by tonight 9pm        => x:100.000000, y:148.000000, w:264.000000, h:196.000000
-//             slider   => x:100.000000, y:246.000000, w:200.000000, h:266.000000
-//                     indicator        => x:100.000000, y:246.000000, w:120.000000, h:266.000000
-//             Ok3      => x:100.000000, y:316.000000, w:128.000000, h:364.000000
-//             Ok13     => x:100.000000, y:414.000000, w:133.000000, h:462.000000
-
-
 
                 for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
                     widget_stack->items[++widget_stack->top] = i; 
@@ -493,12 +511,6 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt
     
     widget->text = label;
     widget->flags = opt;
-    widget->padding = (ruin_Direction) {
-        .left = 8,
-        .right = 8,
-        .top = 8,
-        .bottom = 8,
-    };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_TEXT) {
         widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
@@ -506,7 +518,7 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BACKGROUND) {
-        widget->background = (ruin_Color) {.r=255, .g=0, .b=0, .a=255};
+        widget->background = (ruin_Color) {.r=250, .g=250, .b=250, .a=255};
         widget->foreground = make_color_hex(0x00FFFFFF);
     };
 
@@ -553,6 +565,12 @@ B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) label_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
+    label_widget->padding = (ruin_Direction) {
+        .left = 16,
+        .right = 16,
+        .top = 8,
+        .bottom = 8,
+    };
     push_widget_narry(ctx->current_window->root_widget, label_widget);
 
     return false;
@@ -563,8 +581,15 @@ B8 ruin_ButtonToggle(ruin_Context* ctx, const char* label, bool *pressed) {
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) label_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
 
-    if (*pressed) label_widget->background = make_color_hex(0xFF0000FF);
-    else label_widget->background = make_color_hex(0xFF00FFFF);
+    // if (*pressed) label_widget->background = make_color_hex(0xFF0000FF);
+    // else label_widget->background = make_color_hex(0xFF00FFFF);
+
+    label_widget->padding = (ruin_Direction) {
+        .left = 16,
+        .right = 16,
+        .top = 8,
+        .bottom = 8,
+    };
 
     push_widget_narry(ctx->current_window->root_widget, label_widget);
 
