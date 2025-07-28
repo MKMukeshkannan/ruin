@@ -35,7 +35,8 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
     ruin_CharInfo current_char;
     size_t i = 0;
 
-    y+=18;
+    // TODO: ::font:: make it variable for all font sizes
+    y+=12;
     while (string[i] != '\0') {
         current_char = font[string[i]];
         float xpos = x + current_char.bearingX * scale;
@@ -58,8 +59,8 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
 void ruin_RaylibRender(ruin_Context* ctx) {
 
 
-    BeginDrawing();
-    ruin_CharInfo* char_info = ctx->font;
+   BeginDrawing();
+   ruin_CharInfo* char_info = ctx->font;
 
    for (int i = 0; i < ctx->draw_queue.index; ++i) {
        switch (ctx->draw_queue.items[i].type) {
@@ -79,7 +80,7 @@ void ruin_RaylibRender(ruin_Context* ctx) {
    };
    ctx->draw_queue.index = 0;
 
-    EndDrawing();
+   EndDrawing();
 };
 
 

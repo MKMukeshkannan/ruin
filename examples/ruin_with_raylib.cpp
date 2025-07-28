@@ -39,9 +39,6 @@ int main(void) {
 
         ruin_Button(ctx, "Click");
         ruin_ButtonToggle(ctx, "Toggle", &y);
-        ruin_Label(ctx, "Inspector");
-        ruin_Label(ctx, "Inspector2");
-        ruin_Label(ctx, "Inspector3");
         ruin_Label(ctx, "Hello");
         ruin_LabelDyn(ctx, "Hello2", &x);
 

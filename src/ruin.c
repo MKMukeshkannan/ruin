@@ -2,7 +2,6 @@
 extern "C" {
 #endif
 
-
 #ifndef RUIN_HEADER
 #define RUIN_HEADER
 
@@ -37,6 +36,7 @@ typedef struct ruin_Size        { ruin_SizeKind kind; F32 value; F32 strictness;
 typedef struct ruin_Vec2        { F32 x, y; }                                                                                                ruin_Vec2;
 typedef struct ruin_Rect        { F32 x, y, h, w; }                                                                                          ruin_Rect;
 typedef struct ruin_Color       { U8 r, g, b, a; }                                                                                           ruin_Color;
+typedef struct ruin_Direction       { U8 left, right, top, bottom; }                                                                         ruin_Direction;
 
 typedef struct ruin_CharInfo { U32 width; U32 rows; S32 bearingX; S32 bearingY; S64 advance; U8* buffer; } ruin_CharInfo;
 ruin_Color make_color_hex(U32 color);
@@ -66,6 +66,8 @@ struct ruin_Widget {
     const char* text;
     U32 flags;
     ruin_Id id;
+    ruin_Direction padding;
+    ruin_Direction border_width;
 
     ruin_Color background;
     ruin_Color foreground;
@@ -133,7 +135,7 @@ ruin_Context* create_ruin_context() {
     if (FT_New_Face(ft, "inter.ttf", 0, &face)) {
         fprintf(stderr, "Freetype Face Creation Problem");
     };
-    FT_Set_Pixel_Sizes(face, 0, 24);
+    FT_Set_Pixel_Sizes(face, 0, 16);
 
     for (unsigned char c = 0; c < 128; c++) {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
@@ -335,13 +337,13 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 };
 
                 if (current_top->size[RUIN_AXISX].kind == RUIN_SIZEKIND_TEXTCONTENT) {
-                    F32 length = ruin_GetWidth(ctx, current_top->text) + 50;
+                    F32 length = ruin_GetWidth(ctx, current_top->text);
                     current_top->size[RUIN_AXISX].value = length;
                     current_top->fixed_size.x = length;
                 };
 
                 if (current_top->size[RUIN_AXISY].kind == RUIN_SIZEKIND_TEXTCONTENT) {
-                    F32 length = ruin_GetHeight(ctx, current_top->text) + 10;
+                    F32 length = ruin_GetHeight(ctx, current_top->text);
                     current_top->size[RUIN_AXISY].value = length;
                     current_top->fixed_size.y = length;
                 };
@@ -356,8 +358,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
         }
 
         // COMPUTE CHILD DEPENDENT WIDGETS
-        {
-            // printf("\nCHILD DEMP\n");
+        { // printf("\nCHILD DEMP\n");
             widget_stack->items[++widget_stack->top] = root;
             while (widget_stack->top != -1) {
 
@@ -393,10 +394,18 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 if (current_top->parent != NULL) {
                     current_top->draw_coords.x = current_top->parent->draw_coords.x + current_top->parent->partially_offset.x;
                     current_top->draw_coords.y = current_top->parent->draw_coords.y + current_top->parent->partially_offset.y;
-                    current_top->draw_coords.w = current_top->fixed_size.x + current_top->parent->draw_coords.x + current_top->parent->partially_offset.x;
-                    current_top->draw_coords.h = current_top->fixed_size.y + current_top->parent->draw_coords.y + current_top->parent->partially_offset.y;
+                    current_top->draw_coords.w = current_top->padding.left 
+                        + current_top->padding.right 
+                        + current_top->fixed_size.x 
+                        + current_top->parent->draw_coords.x 
+                        + current_top->parent->partially_offset.x;
+                    current_top->draw_coords.h = current_top->padding.top 
+                        + current_top->padding.bottom
+                        + current_top->fixed_size.y 
+                        + current_top->parent->draw_coords.y 
+                        + current_top->parent->partially_offset.y;
                     
-                    current_top->parent->partially_offset.y += current_top->draw_coords.h - current_top->draw_coords.y + 5;
+                    current_top->parent->partially_offset.y += current_top->draw_coords.h - current_top->draw_coords.y;
                     printf("\t parent offset y: %f\n", current_top->parent->partially_offset.y);
                 };
 
@@ -473,6 +482,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
     temp_arena_memory_end(temp_mem);
 };
 
+// TODO: ::layout::  utility to render elements on same_line / row_wise
 void ruin_SameLine() { };
 
 ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt) {
@@ -483,6 +493,12 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt
     
     widget->text = label;
     widget->flags = opt;
+    widget->padding = (ruin_Direction) {
+        .left = 8,
+        .right = 8,
+        .top = 8,
+        .bottom = 8,
+    };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_TEXT) {
         widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
