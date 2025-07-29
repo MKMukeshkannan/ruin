@@ -1,3 +1,4 @@
+#include <stddef.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -17,24 +18,27 @@ extern "C" {
 #define WINDOW_ARRAY    20
 #define DRAW_QUEUE_SIZE 20
 
-
+#define ruin_SameLine(ctx, label)   DeferLoop(ruin_RowBegin(ctx, label), ruin_RowEnd(ctx))
 
 // LAYOUT
 #define ROW_SPACING      5
 
+
+
 // HEADER MESS
 typedef U32    ruin_Id; 
 typedef enum   ruin_SizeKind    { RUIN_SIZEKIND_PIXEL, RUIN_SIZEKIND_TEXTCONTENT, RUIN_SIZEKIND_PARENTPERCENTAGE, RUIN_SIZEKIND_CHILDRENSUM } ruin_SizeKind;
+#define ruin_WidgetOptions U32
 typedef enum   ruin_WidgetFlags { 
     RUIN_WIDGETFLAGS_NO_FLAGS         =  (1<<0),
     RUIN_WIDGETFLAGS_DRAW_BACKGROUND  =  (1<<1),
     RUIN_WIDGETFLAGS_DRAW_BORDER      =  (1<<2),
     RUIN_WIDGETFLAGS_DRAW_TEXT        =  (1<<3),
     RUIN_WIDGETFLAGS_CLICKABLE        =  (1<<4),
-    RUIN_WIDGETFLAGS_HOVERABLE        =  (1<<5)
+    RUIN_WIDGETFLAGS_HOVERABLE        =  (1<<5),
 } ruin_WidgetFlags;
 typedef enum   ruin_WindowFlags { RUIN_WINDOWFLAGS_DRAGABLE = (1<<0), RUIN_WINDOWFLAGS_NOMENU = (1<<1), RUIN_WINDOWFLAGS_NOTITLE = (1<<2) }  ruin_WindowFlags;
-typedef enum   ruin_Axises      { RUIN_AXISX, RUIN_AXISY, RUIN_AXISCOUNT, }                                                                  ruin_Axises;
+typedef enum   ruin_Axis      { RUIN_AXISX, RUIN_AXISY, RUIN_AXISCOUNT, }                                                                  ruin_Axis;
 typedef enum   ruin_DrawType    { RUIN_DRAWTYPE_RECT, RUIN_DRAWTYPE_CLIP, RUIN_DRAWTYPE_TEXT }                                               ruin_DrawType;
 
 typedef struct ruin_Size        { ruin_SizeKind kind; F32 value; F32 strictness; }                                                           ruin_Size;
@@ -72,14 +76,46 @@ struct ruin_Widget {
     ruin_Widget *parent;
 
     const char* text;
-    U32 flags;
+    ruin_WidgetOptions flags;
     ruin_Id id;
     ruin_Direction padding;
     ruin_Direction border_width;
 
+    ruin_Axis child_layout_axis;
+
     ruin_Color background;
     ruin_Color foreground;
     ruin_Color border_color;
+};
+
+typedef struct {
+    S16 top;
+    ruin_Widget* items[100];
+} ruin_WidgetStack;
+
+internal ruin_WidgetStack* create_stack(Temp_Arena_Memory temp) {
+    ruin_WidgetStack* stack = (ruin_WidgetStack*)arena_alloc(temp.arena, sizeof(ruin_WidgetStack));
+    MEM_ZERO(stack, sizeof(ruin_WidgetStack));
+    stack->top = -1;
+    return stack; 
+};
+
+internal ruin_Widget* get_top(ruin_WidgetStack* stack) {
+    if (stack->top == -1) { return NULL; };
+    return stack->items[stack->top];
+};
+
+internal ruin_Widget* pop(ruin_WidgetStack* stack) {
+    if (stack->top == -1) return NULL;
+    return stack->items[stack->top--];
+};
+
+internal void push(ruin_WidgetStack* stack, ruin_Widget* widget) {
+    stack->items[++stack->top] = widget;
+};
+
+internal bool is_stack_empty(ruin_WidgetStack* stack) {
+    return (stack->top == -1);
 };
 
 typedef struct ruin_Window                     ruin_Window;
@@ -122,6 +158,9 @@ typedef struct {
     ruin_Id hot;
     ruin_Id active;
     U64 frame;
+
+
+    ruin_WidgetStack parent_stack;
 } ruin_Context;
 
 
@@ -184,31 +223,6 @@ ruin_Context* create_ruin_context() {
 };
 
 
-typedef struct {
-    S16 top;
-    ruin_Widget* items[100];
-} ruin_WidgetStack;
-
-internal ruin_WidgetStack* create_stack(Temp_Arena_Memory temp) {
-    ruin_WidgetStack* stack = (ruin_WidgetStack*)arena_alloc(temp.arena, sizeof(ruin_WidgetStack));
-    MEM_ZERO(stack, sizeof(ruin_WidgetStack));
-    stack->top = -1;
-    return stack; 
-};
-
-internal ruin_Widget* get_top(ruin_WidgetStack* stack) {
-    if (stack->top == -1) { return NULL; };
-    return stack->items[stack->top];
-};
-
-internal ruin_Widget* pop(ruin_WidgetStack* stack) {
-    if (stack->top == -1) return NULL;
-    return stack->items[stack->top--];
-};
-
-internal void push(ruin_WidgetStack* stack, ruin_Widget* widget) {
-    stack->items[++stack->top] = widget;
-};
 
 
 ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_Id id) {
@@ -248,7 +262,6 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         window->title = title;
         window->window_rect = rect;
         window->window_flags = flags;
-
         
         ctx->windows.items[ctx->windows.index++] = window;
     };
@@ -279,6 +292,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         root->partially_offset.y = 0;
 
         root->flags |= RUIN_WIDGETFLAGS_DRAW_BORDER;
+        root->child_layout_axis = RUIN_AXISY;
 
         root->padding = (ruin_Direction) {
             .left = 20,
@@ -291,13 +305,12 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     };
     root->first_child = NULL;
     window->root_widget = root;
-
-
-
+    push(&ctx->parent_stack, root);
 };
 
 void ruin_EndWindow(ruin_Context* ctx) {
     ctx->current_window = NULL;
+    pop(&ctx->parent_stack);
 };
 
 F32 ruin_GetWidth(ruin_Context* ctx, const char* string) {
@@ -330,6 +343,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
     Temp_Arena_Memory temp_mem = temp_arena_memory_begin(&ctx->arena);
     ruin_WidgetStack* widget_stack = create_stack(temp_mem);
+    ruin_WidgetStack* widget_stack2 = create_stack(temp_mem); // FOR POST ORDER ONLY
 
 
     for (size_t i = 0; i < ctx->windows.index; ++i) {
@@ -340,11 +354,10 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
         {
             // printf("\nRAW SIZEZZ \n");
 
-            widget_stack->items[++widget_stack->top] = root;
-            while (widget_stack->top != -1) {
+            push(widget_stack, root);
+            while (!is_stack_empty(widget_stack)) {
 
-                ruin_Widget* current_top = widget_stack->items[widget_stack->top];
-                widget_stack->top--;
+                ruin_Widget* current_top = pop(widget_stack);
 
                 if (current_top->parent != NULL) {
                     current_top->parent->partially_offset.x = 0;
@@ -371,23 +384,18 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                     current_top->fixed_size.y = length;
                 };
 
-                // printf("%s: h=>%f w=>%f\n", current_top->text, current_top->fixed_size.x, current_top->fixed_size.y);
-                for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
-                    widget_stack->items[++widget_stack->top] = i; 
+                for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) { 
+                    push(widget_stack, widget);
                 }
             };
-            // printf("\n");
             widget_stack->top = -1;
         }
 
-        // COMPUTE CHILD DEPENDENT WIDGETS
-        { // printf("\nCHILD DEMP\n");
-            widget_stack->items[++widget_stack->top] = root;
-            while (widget_stack->top != -1) {
-
-                ruin_Widget* current_top = widget_stack->items[widget_stack->top];
-                widget_stack->top--;
-
+        // COMPUTE PARENT DEPENDENT WIDGETS
+        {  //printf("\nCHILD DEMP\n");
+            push(widget_stack, root);
+            while (!is_stack_empty(widget_stack)) {
+                ruin_Widget* current_top = pop(widget_stack);
 
                 if (current_top->size[RUIN_AXISX].kind == RUIN_SIZEKIND_PARENTPERCENTAGE) {
                     current_top->fixed_size.x = current_top->size[RUIN_AXISX].value * current_top->parent->fixed_size.x;
@@ -397,8 +405,41 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 };
 
                 // printf("%s: s=>%f\n", current_top->text, current_top->fixed_size.x);
-                for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { widget_stack->items[++widget_stack->top] = i; }
+                for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
+                    push(widget_stack, widget);
             };
+
+            widget_stack->top = -1;
+        }
+
+        // COMPUTE CHILD DEPENDENT
+        {  
+            // printf("\nCHILD DEMP\n");
+            push(widget_stack, root);
+            while (!is_stack_empty(widget_stack)) {
+                ruin_Widget* current_top = pop(widget_stack);
+                push(widget_stack2, current_top);
+
+                for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
+                    push(widget_stack, widget);
+            };
+
+            while (!is_stack_empty(widget_stack2)) {
+                ruin_Widget* curr = pop(widget_stack2);
+                int childsum_x = 0, childsum_y = 0;
+                for (ruin_Widget* widget = curr->last_child; widget != NULL; widget = widget->prev_sibling) {
+                    childsum_x += widget->fixed_size.x + widget->padding.left + widget->padding.right;
+                    childsum_y += widget->fixed_size.y;
+                }
+                if (curr->size[RUIN_AXISX].kind == RUIN_SIZEKIND_CHILDRENSUM) {
+                    curr->fixed_size.x = childsum_x;
+                };
+                if (curr->size[RUIN_AXISY].kind == RUIN_SIZEKIND_CHILDRENSUM) {
+                    curr->fixed_size.y = childsum_y;
+                };
+            }
+
+            printf("\n\n");
 
             widget_stack->top = -1;
         }
@@ -406,13 +447,10 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
        // POSITION DRAW CO-ORDS: drawposition
        {
-            // printf("\nPOSITIONS and DRAW CO-ORDS\n");
-            widget_stack->items[++widget_stack->top] = root;
-            while (widget_stack->top != -1) {
-                ruin_Widget* current_top = widget_stack->items[widget_stack->top];
-                widget_stack->top--;
-
-
+            printf("\nPOSITIONS and DRAW CO-ORDS\n");
+            push(widget_stack, root);
+            while (!is_stack_empty(widget_stack)) {
+                ruin_Widget* current_top = pop(widget_stack);
                 // DO YOUR STUFF
                 if (current_top->parent != NULL) {
                     current_top->draw_coords.bbox.x = 
@@ -443,15 +481,17 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                     current_top->draw_coords.text_pos.x = current_top->draw_coords.bbox.x + current_top->padding.left;
                     current_top->draw_coords.text_pos.y = current_top->draw_coords.bbox.y + current_top->padding.top;
                     
-                    current_top->parent->partially_offset.y += current_top->draw_coords.bbox.h - current_top->draw_coords.bbox.y + ROW_SPACING;
-                    // printf("\t parent offset y: %f\n", current_top->parent->partially_offset.y);
+                    if (current_top->parent->child_layout_axis == RUIN_AXISX) {
+                        printf("name:%s dir:%i\n", current_top->text, current_top->child_layout_axis);
+                        current_top->parent->partially_offset.x += current_top->draw_coords.bbox.w - current_top->draw_coords.bbox.x + ROW_SPACING;
+                    } else {
+                        current_top->parent->partially_offset.y += current_top->draw_coords.bbox.h - current_top->draw_coords.bbox.y + ROW_SPACING;
+                    };
                 };
 
                 ruin_Rect rect = current_top->draw_coords.bbox;
-                //printf("%s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
-                for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
-                    widget_stack->items[++widget_stack->top] = i; 
-                }
+                for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) 
+                    push(widget_stack, widget);
             };
 
             widget_stack->top = -1;
@@ -461,17 +501,15 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
        // PRINT DRAW CO-ORDS
        {
-            // printf("\nDRAW CO-ORDS\n");
-            widget_stack->items[++widget_stack->top] = root;
-            while (widget_stack->top != -1) {
-                ruin_Widget* current_top = widget_stack->items[widget_stack->top];
-                widget_stack->top--;
+            push(widget_stack, root);
+            while (!is_stack_empty(widget_stack)) {
+                ruin_Widget* current_top = pop(widget_stack);
 
 
                 ruin_Rect rect = current_top->draw_coords.bbox;
                 ruin_Vec2 text_pos = current_top->draw_coords.text_pos;
                 // DO YOUR STUFF
-                // printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f\n", current_top->text, rect.x, rect.y, rect.w, rect.h);
+                // printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f dir:%i\n", current_top->text, rect.x, rect.y, rect.w, rect.h, current_top->child_layout_axis);
                 ctx->draw_queue.items[ctx->draw_queue.index++] = (ruin_DrawCall) {
                     .type = RUIN_DRAWTYPE_RECT,
                     .draw_info_union = {
@@ -494,27 +532,20 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                     };
                 }
 
-                for (ruin_Widget* i = current_top->last_child; i != NULL; i = i->prev_sibling) { 
-                    widget_stack->items[++widget_stack->top] = i; 
+                for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) { 
+                    push(widget_stack, widget);
                 }
             };
 
             widget_stack->top = -1;
        }
 
-
-
-        // printf("\n");
-
     };
 
     temp_arena_memory_end(temp_mem);
 };
 
-// TODO: ::layout::  utility to render elements on same_line / row_wise
-void ruin_SameLine() { };
-
-ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt) {
+ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, ruin_WidgetOptions opt) {
     ruin_Widget* widget;
     widget = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
     widget->id = hash_string(label);
@@ -522,6 +553,7 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt
     
     widget->text = label;
     widget->flags = opt;
+    widget->child_layout_axis = RUIN_AXISY;
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_TEXT) {
         widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
@@ -529,12 +561,17 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, U32 opt
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BACKGROUND) {
-        widget->background = (ruin_Color) {.r=250, .g=250, .b=250, .a=255};
+        widget->background = (ruin_Color) {.r=250, .g=0, .b=250, .a=255};
         widget->foreground = make_color_hex(0x00FFFFFF);
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BORDER) {
         widget->border_color = (ruin_Color) {.r=255, .g=255, .b=255, .a=255};
+    };
+
+    if (opt & RUIN_WIDGETFLAGS_NO_FLAGS) {
+        // widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_CHILDRENSUM, .value = 0, .strictness = 1, };
+        // widget->size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_CHILDRENSUM, .value = 0, .strictness = 1, };
     };
 
     return widget;
@@ -563,21 +600,44 @@ internal void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widge
     };
 };
 
+// TODO: ::layout::  utility to render elements on same_line / row_wise
+void ruin_RowBegin(ruin_Context* ctx, const char* label) {
+    ruin_Id id = hash_string(label);
+    ruin_Widget* row_warpper = get_widget_by_id(ctx, id);
+    if (row_warpper == NULL) {
+        row_warpper = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_BACKGROUND);
+        row_warpper->child_layout_axis = RUIN_AXISX;
+    };
+    row_warpper->size[RUIN_AXISY] = (ruin_Size) {
+        .kind = RUIN_SIZEKIND_CHILDRENSUM,
+        .value = 0,
+        .strictness = 1,
+    };
+    row_warpper->size[RUIN_AXISX] = (ruin_Size) {
+        .kind = RUIN_SIZEKIND_CHILDRENSUM,
+        .value = 0,
+        .strictness = 1,
+    };
+    push_widget_narry(ctx->parent_stack.items[ctx->parent_stack.top], row_warpper);
+
+    push(&ctx->parent_stack, row_warpper);
+};
+void ruin_RowEnd(ruin_Context* ctx) { 
+    pop(&ctx->parent_stack);
+};
+
 B8 ruin_Label(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) label_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT);
-    push_widget_narry(ctx->current_window->root_widget, label_widget);
+    push_widget_narry(get_top(&ctx->parent_stack), label_widget);
 
     return false;
 };
 
 bool clicked(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
-    return mouse_position.x >= rectangle.x &&
-           mouse_position.x <= rectangle.w &&
-           mouse_position.y >= rectangle.y &&
-           mouse_position.y <= rectangle.h;
-}
+    return mouse_position.x >= rectangle.x && mouse_position.x <= rectangle.w && mouse_position.y >= rectangle.y && mouse_position.y <= rectangle.h;
+};
 
 
 B8 ruin_Button(ruin_Context* ctx, const char* label) {
@@ -596,39 +656,7 @@ B8 ruin_Button(ruin_Context* ctx, const char* label) {
         label_widget->background = (ruin_Color) { .r=250, .g=250, .b=250, .a=255 };
     };
 
-    push_widget_narry(ctx->current_window->root_widget, label_widget);
-    return false;
-};
-
-B8 ruin_ButtonToggle(ruin_Context* ctx, const char* label, bool *pressed) {
-    ruin_Id id = hash_string(label);
-    ruin_Widget* label_widget = get_widget_by_id(ctx, id);
-    if (label_widget == NULL) label_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
-
-    // if (*pressed) label_widget->background = make_color_hex(0xFF0000FF);
-    // else label_widget->background = make_color_hex(0xFF00FFFF);
-
-    label_widget->padding = (ruin_Direction) {
-        .left = 16,
-        .right = 16,
-        .top = 8,
-        .bottom = 8,
-    };
-
-    push_widget_narry(ctx->current_window->root_widget, label_widget);
-
-    return false;
-};
-
-B8 ruin_LabelDyn(ruin_Context* ctx, const char* _id, const char** display) {
-    ruin_Id id = hash_string(_id);
-    ruin_Widget* label_widget = get_widget_by_id(ctx, id);
-
-    if (label_widget == NULL) label_widget = ruin_create_widget_ex(ctx, _id, RUIN_WIDGETFLAGS_DRAW_TEXT);
-    label_widget->text = *display;
-
-    push_widget_narry(ctx->current_window->root_widget, label_widget);
-
+    push_widget_narry(get_top(&ctx->parent_stack), label_widget);
     return false;
 };
 
@@ -646,6 +674,9 @@ ruin_Color make_color_hex(U32 color) {
 
   return res;
 };
+
+
+
 
 #endif
 

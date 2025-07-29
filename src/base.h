@@ -204,5 +204,6 @@ Temp_Arena_Memory temp_arena_memory_begin(Arena *a);
 void temp_arena_memory_end(Temp_Arena_Memory temp);
 
 
+#define DeferLoop(begin, end)        for(int _i_ = ((begin), 0); !_i_; _i_ += 1, (end))
 
 #endif

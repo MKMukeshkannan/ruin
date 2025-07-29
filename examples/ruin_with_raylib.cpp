@@ -14,6 +14,8 @@ int main(void) {
                                     // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
+
+
     ruin_Context* ctx = create_ruin_context();
     ruin_RaylibInit(ctx);
 
@@ -41,9 +43,17 @@ int main(void) {
         // START HIERARCHY
         ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=100, .y = 10, .h = 400, .w = 400, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
-        ruin_Button(ctx, "Clicky");
-        ruin_ButtonToggle(ctx, "Toggle", &y);
-        ruin_Label(ctx, "Helloy");
+
+        ruin_Label(ctx, "Heading 1");
+        ruin_SameLine(ctx, "1") {
+             ruin_Label(ctx, "player");
+             ruin_Button(ctx, "Clicky");
+        }
+        
+        ruin_SameLine(ctx, "2") {
+            ruin_Label(ctx, "enemy");
+            ruin_Button(ctx, "Clicky2");
+        };
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY
