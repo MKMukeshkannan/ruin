@@ -45,14 +45,30 @@ int main(void) {
 
 
         ruin_Label(ctx, "Heading 1");
+        ruin_Label(ctx, "Heading 2");
         ruin_SameLine(ctx, "1") {
              ruin_Label(ctx, "player");
-             ruin_Button(ctx, "Clicky");
+             ruin_Button(ctx, "Clicky   ");
+             ruin_Button(ctx, "Clicky   3");
+             ruin_Button(ctx, "Clicky   5");
+             ruin_Button(ctx, "Clicky   7");
+             ruin_Button(ctx, "Clicky   9");
         }
         
         ruin_SameLine(ctx, "2") {
             ruin_Label(ctx, "enemy");
             ruin_Button(ctx, "Clicky2");
+        };
+
+        ruin_SameLine(ctx, "3") {
+            ruin_Label(ctx, "player 1");
+            ruin_Button(ctx, "Clicky 2");
+        };
+        ruin_Label(ctx, "Heading1   ");
+        ruin_Label(ctx, "Heading2   ");
+        ruin_SameLine(ctx, "4") {
+            ruin_Label(ctx, "Heading1 x");
+            ruin_Label(ctx, "Heading2 x");
         };
 
         ruin_EndWindow(ctx);

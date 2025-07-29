@@ -14,16 +14,14 @@ extern "C" {
 #include <stdlib.h>
 
 
-#define WIDGET_ARRAY    20
-#define WINDOW_ARRAY    20
-#define DRAW_QUEUE_SIZE 20
+#define WIDGET_ARRAY    40
+#define WINDOW_ARRAY    40
+#define DRAW_QUEUE_SIZE 40
 
 #define ruin_SameLine(ctx, label)   DeferLoop(ruin_RowBegin(ctx, label), ruin_RowEnd(ctx))
 
 // LAYOUT
 #define ROW_SPACING      5
-
-
 
 // HEADER MESS
 typedef U32    ruin_Id; 
@@ -38,7 +36,7 @@ typedef enum   ruin_WidgetFlags {
     RUIN_WIDGETFLAGS_HOVERABLE        =  (1<<5),
 } ruin_WidgetFlags;
 typedef enum   ruin_WindowFlags { RUIN_WINDOWFLAGS_DRAGABLE = (1<<0), RUIN_WINDOWFLAGS_NOMENU = (1<<1), RUIN_WINDOWFLAGS_NOTITLE = (1<<2) }  ruin_WindowFlags;
-typedef enum   ruin_Axis      { RUIN_AXISX, RUIN_AXISY, RUIN_AXISCOUNT, }                                                                  ruin_Axis;
+typedef enum   ruin_Axis      { RUIN_AXISX, RUIN_AXISY, RUIN_AXISCOUNT, }                                                                    ruin_Axis;
 typedef enum   ruin_DrawType    { RUIN_DRAWTYPE_RECT, RUIN_DRAWTYPE_CLIP, RUIN_DRAWTYPE_TEXT }                                               ruin_DrawType;
 
 typedef struct ruin_Size        { ruin_SizeKind kind; F32 value; F32 strictness; }                                                           ruin_Size;
@@ -398,7 +396,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 ruin_Widget* current_top = pop(widget_stack);
 
                 if (current_top->size[RUIN_AXISX].kind == RUIN_SIZEKIND_PARENTPERCENTAGE) {
-                    current_top->fixed_size.x = current_top->size[RUIN_AXISX].value * current_top->parent->fixed_size.x;
+                    current_top->fixed_size.x = current_top->size[RUIN_AXISX].value * current_top->parent->fixed_size.x - current_top->parent->padding.left - current_top->parent->padding.right;
                 };
                 if (current_top->size[RUIN_AXISY].kind == RUIN_SIZEKIND_PARENTPERCENTAGE) {
                     current_top->fixed_size.y = current_top->size[RUIN_AXISY].value * current_top->parent->fixed_size.x;
@@ -426,16 +424,20 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
 
             while (!is_stack_empty(widget_stack2)) {
                 ruin_Widget* curr = pop(widget_stack2);
-                int childsum_x = 0, childsum_y = 0;
+                int childsum_x = 0, childsum_y = 0, childmax_x = -1, childmax_y = -1;
                 for (ruin_Widget* widget = curr->last_child; widget != NULL; widget = widget->prev_sibling) {
                     childsum_x += widget->fixed_size.x + widget->padding.left + widget->padding.right;
-                    childsum_y += widget->fixed_size.y;
-                }
+                    childsum_y += widget->fixed_size.y + widget->padding.top  + widget->padding.bottom;
+                    childmax_x = MAX(childmax_x, widget->fixed_size.x + widget->padding.left + widget->padding.right);
+                    childmax_y = MAX(childmax_y, widget->fixed_size.y + widget->padding.top + widget->padding.bottom);
+                };
+
+                // TODO: ::layout:: if the flow direction is Y AXIS, then height of widget must be summed instead of width;
                 if (curr->size[RUIN_AXISX].kind == RUIN_SIZEKIND_CHILDRENSUM) {
                     curr->fixed_size.x = childsum_x;
                 };
                 if (curr->size[RUIN_AXISY].kind == RUIN_SIZEKIND_CHILDRENSUM) {
-                    curr->fixed_size.y = childsum_y;
+                    curr->fixed_size.y = childmax_y;
                 };
             }
 
@@ -614,8 +616,8 @@ void ruin_RowBegin(ruin_Context* ctx, const char* label) {
         .strictness = 1,
     };
     row_warpper->size[RUIN_AXISX] = (ruin_Size) {
-        .kind = RUIN_SIZEKIND_CHILDRENSUM,
-        .value = 0,
+        .kind = RUIN_SIZEKIND_PARENTPERCENTAGE,
+        .value = 1,
         .strictness = 1,
     };
     push_widget_narry(ctx->parent_stack.items[ctx->parent_stack.top], row_warpper);
@@ -674,9 +676,6 @@ ruin_Color make_color_hex(U32 color) {
 
   return res;
 };
-
-
-
 
 #endif
 
