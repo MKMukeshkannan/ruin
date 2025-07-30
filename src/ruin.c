@@ -272,8 +272,8 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         MEM_ZERO(root, sizeof(ruin_Widget));
 
         root->id = root_id;
-        root->size[0] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
-        root->size[1] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
+        root->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
+        root->size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
         root->text = "root##default";
         root->background = make_color_hex(0xFFFFFFFF);
         root->child_count = 0;
@@ -449,36 +449,30 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 ruin_Widget* current_top = pop(widget_stack);
 
                 if (current_top->child_layout_axis == RUIN_AXISX) {
+                    int rem_width = 
+                        current_top->fixed_size.x - 
+                        current_top->padding.left - current_top->padding.right - ROW_SPACING;
 
-                    int rem_width = current_top->fixed_size.x - current_top->padding.left - current_top->padding.right - ROW_SPACING, growables = 0;
+                    U8 growables = 0;
+
                     for (ruin_Widget* widget = current_top->first_child; widget != NULL; widget = widget->next_sibling) {
                         if (widget->size[RUIN_AXISX].kind == RUIN_SIZEKIND_GROW) growables++;
-                        rem_width -= widget->fixed_size.x + widget->padding.left + widget->padding.right;
+                        rem_width -= widget->fixed_size.x + widget->padding.right + widget->padding.left + ROW_SPACING;
                     };
 
-                    if (rem_width > 0) {
+                    while (rem_width > 0) {
                         for (ruin_Widget* widget = current_top->first_child; widget != NULL; widget = widget->next_sibling) {
                             if (widget->size[RUIN_AXISX].kind == RUIN_SIZEKIND_GROW) {
-                                // printf("widget: %s rem_width: %i\n", widget->text, rem_width);
-                                widget->fixed_size.x = rem_width;
-                            }
+                                widget->fixed_size.x = rem_width / (F32)growables;
+                            };
                         };
-                    }
-                } else {
-                    int rem_width = current_top->fixed_size.y - current_top->padding.top - current_top->padding.bottom - ROW_SPACING, growables = 0;
-                    for (ruin_Widget* widget = current_top->first_child; widget != NULL; widget = widget->next_sibling) {
-                        if (widget->size[RUIN_AXISY].kind == RUIN_SIZEKIND_GROW) growables++;
-                        rem_width -= widget->fixed_size.y + widget->padding.top + widget->padding.bottom + ROW_SPACING;
+                        rem_width = 0;
                     };
 
-                    if (rem_width > 0) {
-                        for (ruin_Widget* widget = current_top->first_child; widget != NULL; widget = widget->next_sibling) {
-                            if (widget->size[RUIN_AXISY].kind == RUIN_SIZEKIND_GROW) {
-                                printf("widget: %s rem_width: %i\n", widget->text, rem_width);
-                                widget->fixed_size.y = rem_width;
-                            }
-                        };
-                    }
+
+
+
+                } else {
                 };
 
 
@@ -693,6 +687,30 @@ B8 ruin_SpacerX(ruin_Context* ctx, const char* label) {
     return false;
 };
 
+B8 ruin_SpacerFixedX(ruin_Context* ctx, const char* label, F32 space) {
+    ruin_Id id = hash_string(label);
+    ruin_Widget* spacer = get_widget_by_id(ctx, id);
+    if (spacer == NULL) {
+        spacer = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = space, .strictness = 1 };
+        spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
+    };
+    push_widget_narry(get_top(&ctx->parent_stack), spacer);
+    return false;
+};
+
+B8 ruin_SpacerFixedY(ruin_Context* ctx, const char* label, F32 space) {
+    ruin_Id id = hash_string(label);
+    ruin_Widget* spacer = get_widget_by_id(ctx, id);
+    if (spacer == NULL) {
+        spacer = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
+        spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = space, .strictness = 1 };
+    };
+    push_widget_narry(get_top(&ctx->parent_stack), spacer);
+    return false;
+    return false;
+};
 B8 ruin_SpacerY(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* spacer = get_widget_by_id(ctx, id);

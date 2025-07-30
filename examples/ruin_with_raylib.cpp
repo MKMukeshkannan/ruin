@@ -26,7 +26,7 @@ int main(void) {
     const char* x = "xx";
     bool y = false;
 
-    int height;
+    float height;
     while (!WindowShouldClose()) {
         height = GetMonitorHeight(0);
 
@@ -45,30 +45,41 @@ int main(void) {
 
         //
         // START HIERARCHY
-        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 200, .w = 800, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 300, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
-
-        ruin_Label(ctx, "Image Editor");
+        // ruin_Label(ctx, "Image Editor");
+        // ruin_SpacerFixedY(ctx, "heading_space_y", 8);
         ruin_SameLine(ctx, "blur_group") {
-             ruin_Label(ctx, "Blur");
-             ruin_SpacerX(ctx, "blur space");
-             ruin_Label(ctx, "90");
+             ruin_SpacerX(ctx, "blur space1");
+             ruin_Label(ctx, "THIS IS HEADING");
+        }
+
+        ruin_SpacerFixedY(ctx, "heading_space_y", 8);
+        ruin_SameLine(ctx, "grain_group") {
+             ruin_Label(ctx, "grain");
+             ruin_SpacerX(ctx, "grain space2");
+             ruin_Label(ctx, "10");
+        }
+        ruin_SameLine(ctx, "threshhold_group") {
+             ruin_Label(ctx, "threshhold");
+             ruin_SpacerX(ctx, "threshhold space2");
+             ruin_Label(ctx, "x0");
         }
         
-        ruin_SameLine(ctx, "grain_group") {
-            ruin_Label(ctx, "Grain");
-            ruin_SpacerX(ctx, "grain space");
-            ruin_Label(ctx, "70");
-        };
+        // ruin_SameLine(ctx, "grain_group") {
+        //     ruin_Label(ctx, "Grain");
+        //     ruin_SpacerX(ctx, "grain space");
+        //     ruin_Label(ctx, "70");
+        // };
 
-        ruin_SameLine(ctx, "showeffect_group") {
-            ruin_Label(ctx, "Show Effect");
-            ruin_SpacerX(ctx, "showeffect space");
-            ruin_Button(ctx, "ON");
-        };
+        // ruin_SameLine(ctx, "showeffect_group") {
+        //     ruin_Label(ctx, "Show Effect");
+        //     ruin_SpacerX(ctx, "showeffect space");
+        //     ruin_Button(ctx, "ON");
+        // };
 
-        ruin_SpacerY(ctx, "vertical_spacer2");
-        ruin_Button(ctx, "Export");
+        // ruin_SpacerY(ctx, "vertical_spacer2");
+        // ruin_Button(ctx, "Export");
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY

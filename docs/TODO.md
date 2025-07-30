@@ -8,9 +8,9 @@
 ## Features
 ### v0.1
 - [x] calculating text width and height
+- [x] freetype
 - [ ] signal stuff,
 - [ ] hover and click stuff
-- [x] freetype
 - [ ] opengl
 
 ## Bugs
