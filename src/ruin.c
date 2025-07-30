@@ -81,8 +81,10 @@ struct ruin_Widget {
 
     ruin_Axis child_layout_axis;
 
-    ruin_Color background;
-    ruin_Color foreground;
+    ruin_Color background_color;
+    ruin_Color foreground_color;
+    ruin_Color hover_color;
+    ruin_Color active_color;
     ruin_Color border_color;
     U32 child_count;
 };
@@ -161,7 +163,9 @@ typedef struct {
 
     // STYLE STACKS => push to the stacks to apply style to upcoming widgets
     ruin_ColorStack    background_color_stack;
+    ruin_ColorStack    hover_color_stack;
     ruin_ColorStack    foreground_color_stack;
+    ruin_ColorStack    active_color_stack;
     ruin_RectSideStack padding_stack; 
     ruin_AxisStack     child_direction_stack;
 
@@ -193,10 +197,10 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* label, ruin_Wi
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BACKGROUND) {
-        printf("CREATOIN STUFF1 label:%s bg:%i\n", label, widget->background.r);
-        widget->background = *get_color_stack_top(&ctx->background_color_stack);
-        printf("CREATOIN STUFF2 label:%s bg:%i\n", label, widget->background.r);
-        widget->foreground = *get_color_stack_top(&ctx->foreground_color_stack);
+        widget->background_color = *get_color_stack_top(&ctx->background_color_stack);
+        widget->foreground_color = *get_color_stack_top(&ctx->foreground_color_stack);
+        widget->hover_color = *get_color_stack_top(&ctx->hover_color_stack);
+        widget->active_color = *get_color_stack_top(&ctx->active_color_stack);
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BORDER) {
@@ -225,6 +229,9 @@ ruin_Context* create_ruin_context() {
 
     ctx->font_size = (ctx->font_size == 0) ? 14 : ctx->font_size;
     push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
+    push_color_stack(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
+    push_color_stack(&ctx->hover_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
+    push_color_stack(&ctx->active_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
 
     FT_Library ft;
     if (FT_Init_FreeType(&ft)) {
@@ -319,7 +326,6 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         root->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
         root->size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
         root->text = "root##default";
-        root->background = make_color_hex(0xFFFFFFFF);
         root->child_count = 0;
 
         root->draw_coords.bbox.x = ctx->current_window->window_rect.x;
@@ -591,13 +597,13 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
                 ruin_Rect rect = current_top->draw_coords.bbox;
                 ruin_Vec2 text_pos = current_top->draw_coords.text_pos;
                 // DO YOUR STUFF
-                printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f dir:%i fw:%f cr:%i\n", current_top->text, rect.x, rect.y, rect.w, rect.h, current_top->child_layout_axis, current_top->fixed_size.x, current_top->background.r);
+                printf("ABOUT TO PUSH %s\t => x:%f, y:%f, w:%f, h:%f dir:%i fw:%f cr:%i\n", current_top->text, rect.x, rect.y, rect.w, rect.h, current_top->child_layout_axis, current_top->fixed_size.x, current_top->background_color.r);
                 ctx->draw_queue.items[ctx->draw_queue.index++] = (ruin_DrawCall) {
                     .type = RUIN_DRAWTYPE_RECT,
                     .draw_info_union = {
                         .draw_rect = {
                             .rect = rect,
-                            .color = current_top->background,
+                            .color = current_top->background_color,
                             .border_width = (current_top->flags & RUIN_WIDGETFLAGS_DRAW_BORDER) ? (U8)1 : (U8)0,
                         }
                     }
@@ -736,7 +742,7 @@ B8 ruin_SpacerY(ruin_Context* ctx, const char* label) {
     return false;
 };
 
-bool clicked(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
+bool hovered(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
     return mouse_position.x >= rectangle.x && mouse_position.x <= rectangle.w && mouse_position.y >= rectangle.y && mouse_position.y <= rectangle.h;
 };
 
@@ -744,16 +750,18 @@ bool clicked(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
 B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
-    if (button_widget == NULL) button_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
+    if (button_widget == NULL) {
+        push_rectsides_stack(&ctx->padding_stack, (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, });
+        button_widget = ruin_create_widget_ex(ctx, label, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
+        pop_rectsides_stack(&ctx->padding_stack);
+    }
 
     ruin_Rect rect = button_widget->draw_coords.bbox;
     ruin_Vec2 mouse_position = ctx->mouse_position;
-    button_widget->padding = (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, };
-
-    if (clicked(rect, mouse_position)) {
-        button_widget->background = *get_color_stack_top(&ctx->background_color_stack);
+    if (hovered(rect, mouse_position)) {
+        button_widget->background_color = *get_color_stack_top(&ctx->active_color_stack);
     } else {
-        button_widget->background = (ruin_Color) { .r=250, .g=250, .b=250, .a=255 };
+        button_widget->background_color = *get_color_stack_top(&ctx->background_color_stack);
     };
 
     push_widget_narry(get_top(&ctx->parent_stack), button_widget);

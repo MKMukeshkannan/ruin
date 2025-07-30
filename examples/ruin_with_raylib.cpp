@@ -51,10 +51,13 @@ int main(void) {
              ruin_Label(ctx, "THIS IS HEADING");
         }
 
-        push_color_stack(&ctx->background_color_stack, (ruin_Color) { .r = 250, .g = 0, .b = 0, .a = 255,  });
+        push_color_stack(&ctx->background_color_stack, (ruin_Color) { .r = 250, .g = 250, .b = 250, .a = 255,  });
+        push_color_stack(&ctx->active_color_stack, (ruin_Color) { .r = 250, .g = 0, .b = 50, .a = 255,  });
+
         ruin_Button(ctx, "Hello");
-        ruin_Button(ctx, "Hello");
+
         pop_color_stack(&ctx->background_color_stack);
+        pop_color_stack(&ctx->active_color_stack);
 
         push_color_stack(&ctx->background_color_stack, (ruin_Color) { .r = 250, .g = 0, .b = 250, .a = 255,  });
         ruin_Button(ctx, "Hello2");
