@@ -26,22 +26,19 @@ int main(void) {
     const char* x = "xx";
     bool y = false;
 
-    float height;
     while (!WindowShouldClose()) {
-        height = GetMonitorHeight(0);
 
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
 
         ClearBackground(RAYWHITE);
 
-        if (IsKeyDown(KEY_SPACE)) y = true;
-        if (IsKeyUp(KEY_SPACE)) y = false;
-
-        if (IsKeyDown(KEY_SPACE)) x = "xx";
-        if (IsKeyUp(KEY_SPACE)) x = "yy";
-        if (IsKeyDown(KEY_UP)) current = MIN(to, current + 1); 
-        if (IsKeyDown(KEY_DOWN)) current = MAX(from, current - 1); 
+        if (IsKeyDown(KEY_UP)) {
+            current = MIN(to, current + 1); 
+        };
+        if (IsKeyDown(KEY_DOWN)) {
+            current = MAX(from, current - 1); 
+        };
 
         //
         // START HIERARCHY
@@ -53,6 +50,15 @@ int main(void) {
              ruin_SpacerX(ctx, "blur space1");
              ruin_Label(ctx, "THIS IS HEADING");
         }
+
+        push_color_stack(&ctx->background_color_stack, (ruin_Color) { .r = 250, .g = 0, .b = 0, .a = 255,  });
+        ruin_Button(ctx, "Hello");
+        ruin_Button(ctx, "Hello");
+        pop_color_stack(&ctx->background_color_stack);
+
+        push_color_stack(&ctx->background_color_stack, (ruin_Color) { .r = 250, .g = 0, .b = 250, .a = 255,  });
+        ruin_Button(ctx, "Hello2");
+        pop_color_stack(&ctx->background_color_stack);
 
         ruin_SpacerFixedY(ctx, "heading_space_y", 8);
         ruin_SameLine(ctx, "grain_group") {

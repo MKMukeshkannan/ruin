@@ -206,4 +206,14 @@ void temp_arena_memory_end(Temp_Arena_Memory temp);
 
 #define DeferLoop(begin, end)        for(int _i_ = ((begin), 0); !_i_; _i_ += 1, (end))
 
+// GENREIC STACKS
+#define DECLARE_STACK(name, type) typedef struct {S16 top; type items[4];} type##Stack;\
+    internal bool is_##name##_stack_empty(type##Stack* stack) { return (stack->top == -1); };\
+    internal type* get_##name##_stack_top(type##Stack* stack) { return (stack->top == -1) ? NULL: &stack->items[stack->top]; };\
+    internal type* pop_##name##_stack(type##Stack* stack) { return (stack->top == -1) ? NULL: &stack->items[stack->top--]; };\
+    internal void push_##name##_stack(type##Stack* stack, type item) { stack->items[++stack->top] = item; };\
+
+
+
+
 #endif
