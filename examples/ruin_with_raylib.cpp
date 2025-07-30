@@ -1,6 +1,7 @@
 #include "../src/ruin.c"
 #include "../src/ruin_raylib_render.c"
 #include "raylib.h"
+#include <cstdio>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,7 +12,7 @@ int main(void) {
     const int screenHeight = 800;
 
     SetTraceLogCallback(CustomLog); // call this before InitWindow()
-                                    // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
 
@@ -24,7 +25,10 @@ int main(void) {
 
     const char* x = "xx";
     bool y = false;
+
+    int height;
     while (!WindowShouldClose()) {
+        height = GetMonitorHeight(0);
 
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
@@ -41,35 +45,30 @@ int main(void) {
 
         //
         // START HIERARCHY
-        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=100, .y = 10, .h = 400, .w = 400, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 200, .w = 800, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
 
-        ruin_Label(ctx, "Heading 1");
-        ruin_Label(ctx, "Heading 2");
-        ruin_SameLine(ctx, "1") {
-             ruin_Label(ctx, "player");
-             ruin_Button(ctx, "Clicky   ");
-             ruin_Button(ctx, "Clicky   3");
-             ruin_Button(ctx, "Clicky   5");
-             ruin_Button(ctx, "Clicky   7");
-             ruin_Button(ctx, "Clicky   9");
+        ruin_Label(ctx, "Image Editor");
+        ruin_SameLine(ctx, "blur_group") {
+             ruin_Label(ctx, "Blur");
+             ruin_SpacerX(ctx, "blur space");
+             ruin_Label(ctx, "90");
         }
         
-        ruin_SameLine(ctx, "2") {
-            ruin_Label(ctx, "enemy");
-            ruin_Button(ctx, "Clicky2");
+        ruin_SameLine(ctx, "grain_group") {
+            ruin_Label(ctx, "Grain");
+            ruin_SpacerX(ctx, "grain space");
+            ruin_Label(ctx, "70");
         };
 
-        ruin_SameLine(ctx, "3") {
-            ruin_Label(ctx, "player 1");
-            ruin_Button(ctx, "Clicky 2");
+        ruin_SameLine(ctx, "showeffect_group") {
+            ruin_Label(ctx, "Show Effect");
+            ruin_SpacerX(ctx, "showeffect space");
+            ruin_Button(ctx, "ON");
         };
-        ruin_Label(ctx, "Heading1   ");
-        ruin_Label(ctx, "Heading2   ");
-        ruin_SameLine(ctx, "4") {
-            ruin_Label(ctx, "Heading1 x");
-            ruin_Label(ctx, "Heading2 x");
-        };
+
+        ruin_SpacerY(ctx, "vertical_spacer2");
+        ruin_Button(ctx, "Export");
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY
