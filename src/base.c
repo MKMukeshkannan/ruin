@@ -105,10 +105,11 @@ String8 str_init(size_t len, Arena* arena) {
     s.data[len] = 0;
     return s;
 }
-String8 str_from_cstr(const char* string, Arena* arena) {
-    size_t len = strlen(string);
-    String8 s = str_init(len, arena);
-    memcpy(s.data, string, len);
+String8 str_from_cstr(const char* cstr, Arena* arena) {
+    String8 s;
+    s.len = strlen(cstr);
+    s.data = (char*)arena_alloc(arena, s.len + 1);  // No null terminator included
+    if (s.data != NULL) memcpy(s.data, cstr, s.len);
     return s;
 };
 String8 str_concat(String8 s1, String8 s2, Arena *a) {

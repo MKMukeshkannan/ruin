@@ -1,9 +1,10 @@
 #ifndef RUIN_RAYLIB_RENDERER
 #define RUIN_RAYLIB_RENDERER
 
-#include "ruin.c"
+#include "ruin_core.h"
 #include <raylib.h>
 #include <stdio.h>
+#include "stdlib.h"
 
 static Texture2D font_texture[128];
 

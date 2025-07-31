@@ -1,7 +1,8 @@
-#include "../src/ruin.c"
+
+#include "ruin_widget.h"
+#include "ruin_core.h"
 #include "../src/ruin_raylib_render.c"
 #include "raylib.h"
-#include <cstdio>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -44,19 +45,21 @@ int main(void) {
         // START HIERARCHY
         ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 300, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
+
+
         ruin_Label(ctx, "Image Editor");
-        ruin_SpacerFixedY(ctx, 10);
         ruin_SameLine(ctx, "grain_group") {
-             ruin_Label(ctx, "grain");
-             ruin_SpacerX(ctx);
-             ruin_Label(ctx, "10");
-        }
-        ruin_SameLine(ctx, "threshhold_group") {
-             ruin_Label(ctx, "threshhold");
-             ruin_SpacerX(ctx);
-             ruin_Label(ctx, "70");
-        }
+            ruin_Label(ctx, "grain");
+            ruin_SpacerX(ctx);
+            ruin_Label(ctx, "20");
+        };
+        ruin_SameLine(ctx, "grain_group2") {
+            ruin_Label(ctx, "grain");
+            ruin_SpacerX(ctx);
+            ruin_Label(ctx, "20");
+        };
         
+
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY
         //
