@@ -113,6 +113,7 @@ internal ruin_Widget* get_top(ruin_WidgetStack* stack) { if (stack->top == -1) {
 internal ruin_Widget* pop(ruin_WidgetStack* stack) { if (stack->top == -1) return NULL; return stack->items[stack->top--]; };
 internal void push(ruin_WidgetStack* stack, ruin_Widget* widget) { stack->items[++stack->top] = widget; };
 internal bool is_stack_empty(ruin_WidgetStack* stack) { return (stack->top == -1); };
+internal void clear_stack(ruin_WidgetStack* stack) {stack->top = -1;};
 
 typedef struct ruin_Window                     ruin_Window;
 struct ruin_Window {
