@@ -99,3 +99,79 @@ void temp_arena_memory_end(Temp_Arena_Memory temp) {
 	temp.arena->prev_offset = temp.prev_offset;
 	temp.arena->curr_offset = temp.curr_offset;
 }
+
+String8 str_init(size_t len, Arena* arena) {
+    String8 s = { .len = len, .data = (char*)arena_alloc(arena, len), };
+    s.data[len] = 0;
+    return s;
+}
+String8 str_from_cstr(const char* string, Arena* arena) {
+    size_t len = strlen(string);
+    String8 s = str_init(len, arena);
+    memcpy(s.data, string, len);
+    return s;
+};
+String8 str_concat(String8 s1, String8 s2, Arena *a) {
+    size_t len = s1.len + s2.len;
+    String8 s = str_init(len, a);
+    memcpy(s.data, s1.data, s1.len);
+    memcpy(&s.data[s1.len], s2.data, s2.len);
+    return s;
+}
+String8 str_substring(String8 s, size_t start, size_t end, Arena *a) {
+    String8 r = {0};
+    if (end <= s.len && start < end) {
+        r = str_init(end - start, a);
+        memcpy(r.data, &s.data[start], r.len);
+    }
+    return r;
+}
+bool str_contains(String8 haystack, String8 needle) {
+    bool found = false;
+    for (size_t i = 0, j = 0; i < haystack.len && !found; i += 1) {
+        while (haystack.data[i] == needle.data[j]) {
+            j += 1;
+            i += 1;
+            if (j == needle.len) {
+                found = true;
+                break;
+            }
+        }
+    }
+    return found;
+}
+size_t str_index_of(String8 haystack, String8 needle) {
+    for (size_t i = 0; i < haystack.len; i += 1) {
+        size_t j = 0;
+        size_t start = i;
+        while (haystack.data[i] == needle.data[j]) {
+            j += 1;
+            i += 1;
+            if (j == needle.len) {
+                return start;
+            }
+        }
+    }
+    return (size_t)-1;
+}
+String8 str_substring_view(String8 haystack, String8 needle) {
+    String8 r = {0};
+    size_t start_index = str_index_of(haystack, needle);
+    if (start_index < haystack.len) {
+        r.data = &haystack.data[start_index];
+        r.len = needle.len;
+    }
+    return r;
+}
+bool str_equal(String8 a, String8 b) {
+    if (a.len != b.len) {
+        return false;
+    }
+    return memcmp(a.data, b.data, a.len) == 0;
+}
+String8 str_view(String8 s, size_t start, size_t end) {
+    if (end < start || end - start > s.len) {
+        return (String8){0};
+    }
+    return (String8){end - start, s.data + start};
+}

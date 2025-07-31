@@ -195,11 +195,7 @@ void *arena_resize(Arena *a, void *old_memory, size_t old_size, size_t new_size)
 void arena_free_all(Arena *a);
 
 typedef struct Temp_Arena_Memory Temp_Arena_Memory;
-struct Temp_Arena_Memory {
-	Arena *arena;
-	size_t prev_offset;
-	size_t curr_offset;
-};
+struct Temp_Arena_Memory { Arena *arena; size_t prev_offset; size_t curr_offset; };
 Temp_Arena_Memory temp_arena_memory_begin(Arena *a);
 void temp_arena_memory_end(Temp_Arena_Memory temp);
 
@@ -214,6 +210,18 @@ void temp_arena_memory_end(Temp_Arena_Memory temp);
     internal void push_##name##_stack(type##Stack* stack, type item) { stack->items[++stack->top] = item; };\
 
 
+
+typedef struct { size_t len; char *data; } String8;
+#define String8(x) (String8){strlen(x), x}
+String8 str_init(size_t len, Arena* arena);
+String8 str_from_cstr(const char* string, Arena* arena);
+String8 str_concat(String8 s1, String8 s2, Arena *a);
+String8 str_substring(String8 s, size_t start, size_t end, Arena *a);
+bool str_contains(String8 haystack, String8 needle);
+size_t str_index_of(String8 haystack, String8 needle);
+String8 str_substring_view(String8 haystack, String8 needle);
+bool str_equal(String8 a, String8 b);
+String8 str_view(String8 s, size_t start, size_t end);
 
 
 #endif
