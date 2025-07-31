@@ -12,19 +12,19 @@ void ruin_RowBegin(ruin_Context* ctx, const char* label) {
     if (row_warpper == NULL) {
         row_warpper = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_NO_FLAGS);
         row_warpper->child_layout_axis = RUIN_AXISX;
+        row_warpper->size[RUIN_AXISY] = (ruin_Size) {
+            .kind = RUIN_SIZEKIND_CHILDRENSUM,
+            .value = 0,
+            .strictness = 1,
+        };
+        row_warpper->size[RUIN_AXISX] = (ruin_Size) {
+            .kind = RUIN_SIZEKIND_PARENTPERCENTAGE,
+            .value = 1,
+            .strictness = 1,
+        };
     };
-    row_warpper->size[RUIN_AXISY] = (ruin_Size) {
-        .kind = RUIN_SIZEKIND_CHILDRENSUM,
-        .value = 0,
-        .strictness = 1,
-    };
-    row_warpper->size[RUIN_AXISX] = (ruin_Size) {
-        .kind = RUIN_SIZEKIND_PARENTPERCENTAGE,
-        .value = 1,
-        .strictness = 1,
-    };
-    push_widget_narry(ctx->parent_stack.items[ctx->parent_stack.top], row_warpper);
 
+    push_widget_narry(ctx->parent_stack.items[ctx->parent_stack.top], row_warpper);
     push(&ctx->parent_stack, row_warpper);
 };
 void ruin_RowEnd(ruin_Context* ctx) { 
@@ -42,7 +42,7 @@ B8 ruin_Label(ruin_Context* ctx, const char* label) {
     return false;
 };
 
-B8 ruin_SpacerX(ruin_Context* ctx) {
+void ruin_SpacerFillX(ruin_Context* ctx) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
@@ -51,10 +51,9 @@ B8 ruin_SpacerX(ruin_Context* ctx) {
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 0, .strictness = 1 };
     };
     push_widget_narry(get_top(&ctx->parent_stack), spacer);
-    return false;
 };
 
-B8 ruin_SpacerFixedX(ruin_Context* ctx, F32 space) {
+void ruin_SpacerFixedX(ruin_Context* ctx, F32 space) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
@@ -63,22 +62,9 @@ B8 ruin_SpacerFixedX(ruin_Context* ctx, F32 space) {
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
     };
     push_widget_narry(get_top(&ctx->parent_stack), spacer);
-    return false;
 };
 
-B8 ruin_SpacerFixedY(ruin_Context* ctx, F32 space) {
-    ruin_Id id = hash_string(ctx, "");
-    ruin_Widget* spacer = get_widget_by_id(ctx, id);
-    if (spacer == NULL) {
-        spacer = ruin_create_widget_ex(ctx, "", id, RUIN_WIDGETFLAGS_NO_FLAGS);
-        spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
-        spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = space, .strictness = 1 };
-    };
-    push_widget_narry(get_top(&ctx->parent_stack), spacer);
-    return false;
-    return false;
-};
-B8 ruin_SpacerY(ruin_Context* ctx) {
+void ruin_SpacerFillY(ruin_Context* ctx) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
@@ -87,9 +73,18 @@ B8 ruin_SpacerY(ruin_Context* ctx) {
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_GROW, .value = 0, .strictness = 1 };
     };
     push_widget_narry(get_top(&ctx->parent_stack), spacer);
-    return false;
 };
 
+void ruin_SpacerFixedY(ruin_Context* ctx, F32 space) {
+    ruin_Id id = hash_string(ctx, "");
+    ruin_Widget* spacer = get_widget_by_id(ctx, id);
+    if (spacer == NULL) {
+        spacer = ruin_create_widget_ex(ctx, "", id, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
+        spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = space, .strictness = 1 };
+    };
+    push_widget_narry(get_top(&ctx->parent_stack), spacer);
+};
 
 
 B8 ruin_Button(ruin_Context* ctx, const char* label) {

@@ -50,12 +50,12 @@ int main(void) {
         ruin_Label(ctx, "Image Editor");
         ruin_SameLine(ctx, "grain_group") {
             ruin_Label(ctx, "grain");
-            ruin_SpacerX(ctx);
+            ruin_SpacerFillX(ctx);
             ruin_Label(ctx, "20");
         };
         ruin_SameLine(ctx, "grain_group2") {
             ruin_Label(ctx, "grain");
-            ruin_SpacerX(ctx);
+            ruin_SpacerFillX(ctx);
             ruin_Label(ctx, "20");
         };
         

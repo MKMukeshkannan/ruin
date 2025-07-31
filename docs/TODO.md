@@ -1,17 +1,38 @@
 # TODOs
 
-## Refactors
-- [ ] split ruin.c => ruin.h && ruin.c
-- [ ] make frame (generics)
-- [ ] string optimization (handle null terminated strings)
+# ruin@v0.1 goals
+INTERACTABILITY
+- [ ] hover
+- [ ] click (left|middle|right)
+- [ ] drag
+- [ ] scroll
+- [ ] text input
+- [ ] shortcuts
 
-## Features
-### v0.1
-- [x] calculating text width and height
-- [x] freetype
-- [ ] signal stuff,
-- [ ] hover and click stuff
-- [ ] opengl
+CORE
+- [ ] fonts
+    - [ ] fix: font is blury
+    - [ ] multiple font support
+    - [ ] multiple size
+    - [ ] bold itallics underline
+    - [ ] icons
 
-## Bugs
-- [ ] None as of now
+WIDGETS
+- [ ] ruin_Button
+    - [ ] font
+    - [ ] padding 
+    - [ ] colors
+        - [ ] bg
+        - [ ] fg
+        - [ ] hover
+        - [ ] active
+        - [ ] border
+    - [ ] text alignment
+    - [ ] border
+
+- [ ] ruin_Spacers
+
+MISCELLANEOUS
+- [ ] readme
+- [ ] documentation
+- [ ] unit testing of each widgets

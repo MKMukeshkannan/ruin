@@ -13,12 +13,12 @@ void ruin_RowBegin(ruin_Context* ctx, const char* label) ;
 void ruin_RowEnd(ruin_Context* ctx);
 
 B8 ruin_Label(ruin_Context* ctx, const char* label);
-B8 ruin_SpacerX(ruin_Context* ctx);
-B8 ruin_SpacerFixedX(ruin_Context* ctx, F32 space);
-B8 ruin_SpacerY(ruin_Context* ctx);
-B8 ruin_SpacerFixedY(ruin_Context* ctx, F32 space);
 B8 ruin_Button(ruin_Context* ctx, const char* label);
 
+void ruin_SpacerFillX(ruin_Context* ctx);
+void ruin_SpacerFixedX(ruin_Context* ctx, F32 space);
+void ruin_SpacerFillY(ruin_Context* ctx);
+void ruin_SpacerFixedY(ruin_Context* ctx, F32 space);
 
 #ifdef __cplusplus
 }
