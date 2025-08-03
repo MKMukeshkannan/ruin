@@ -1,4 +1,3 @@
-
 #include "ruin_widget.h"
 #include "ruin_core.h"
 #include "../src/ruin_raylib_render.c"
@@ -16,30 +15,24 @@ int main(void) {
     // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
-
-
     ruin_Context* ctx = create_ruin_context();
+
+    U32 sizes[] = {16, 20, 24, 32, 48};
+
+    ruin_SetFontCount(ctx, 2);
+    ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_800", 16);
+    // ruin_LoadFont(ctx, "resources/inter_semi.ttf", "INTER_800", 16);
+    // ruin_LoadFont(ctx, "resources/inter.ttf", "INTER_500", 16);
+
     ruin_RaylibInit(ctx);
 
-    F32 from = 0, to = 100, current = 30;
     SetTargetFPS(60);
-
-    const char* x = "xx";
-    bool y = false;
-
     while (!WindowShouldClose()) {
-
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
 
         ClearBackground(RAYWHITE);
 
-        if (IsKeyDown(KEY_UP)) {
-            current = MIN(to, current + 1); 
-        };
-        if (IsKeyDown(KEY_DOWN)) {
-            current = MAX(from, current - 1); 
-        };
 
         //
         // START HIERARCHY
@@ -73,11 +66,4 @@ int main(void) {
 
     free(ctx);
     return 0;
-};
-
-void r_draw_rect(ruin_Rect *rect, ruin_Color color) {
-    if (rect == NULL)
-        return;
-
-    DrawRectangle(rect->x, rect->y, rect->h, rect->w, (Color){ .r = color.r, .g = color.g, .b = color.b, .a = color.a, });
 };

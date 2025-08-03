@@ -3,24 +3,95 @@
 
 #include "ruin_core.h"
 
-internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
-    int i = 0;
-    F32 width = 0.0f;
-    ruin_CharInfo* font = ctx->font;
-    for (int i = 0; i < string.len; ++i) 
-        width += (font[string.data[i]].advance >> 6);
+DEFINE_ARRAY(font_info, ruin_FontInfo);
+DEFINE_ARRAY(u32, U32);
 
-    return width;
+void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
+   if (array->index >= array->capacity) return;
+   // array->items[array->index++] = font;
 };
 
-internal F32 ruin_GetHeight(ruin_Context* ctx, String8 string) {
-    int i = 0;
-    F32 rows = 0.0f;
-    ruin_CharInfo* font = ctx->font;
-    for (int i = 0; i < string.len; ++i) 
-        rows = MAX(font[string.data[i]].rows, rows);
 
-    return rows;
+internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
+    return 0;
+};
+internal F32 ruin_GetHeight(ruin_Context* ctx, String8 string) {
+    return 16;
+};
+
+void ruin_SetFontCount(ruin_Context *ctx, size_t number_of_font_sizes) {
+    const U32 ARENA_SIZE = 12096;
+    Arena arena = {0};
+    unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
+    arena_init(&arena, buffer, ARENA_SIZE);
+
+    ctx->font_build = arena;
+
+    ctx->fonts = (ruin_FontInfoArray*)arena_alloc(&ctx->font_build, sizeof(ruin_FontInfoArray));
+    ctx->fonts->capacity = number_of_font_sizes + 1;
+    ctx->fonts->index = 0;
+    ctx->fonts->items = (ruin_FontInfo*)arena_alloc(&ctx->font_build, sizeof(ruin_FontInfo) * number_of_font_sizes);
+};
+
+void print_bitmap(FT_Bitmap *bitmap) {
+    for (int i = 0; i < bitmap->rows; ++i) {
+        for (int j = 0; j < bitmap->width; ++j) {
+            unsigned char pixel = bitmap->buffer[i * bitmap->pitch + j];
+            putchar(pixel > 128 ? '#' : ' ');
+        }
+        putchar('\n');
+    }
+}
+
+
+void ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 font_size) { 
+    String8 str_name = str_from_cstr(name, &ctx->arena);
+
+    ruin_FontInfo font;
+    font.font_name = str_name;
+    font.font_size = font_size;
+
+    int error;
+    FT_Library ft;
+    FT_Face face;
+    error = FT_Init_FreeType (&ft);
+    if (error) {fprintf(stderr, "Its an Error");};
+
+    error = FT_New_Face(ft, path, 0, &face);
+    if (error) {fprintf(stderr, "Its an Error");};
+
+    error = FT_Set_Pixel_Sizes(face,  0, font_size);
+    if (error) {fprintf(stderr, "Its an Error");};
+
+    for (unsigned char c = 0; c < 128; c++) {
+        if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+            fprintf(stderr, "ERROR::FREETYTPE: Failed to load Glyph");
+            continue;
+        };
+
+        if (c == 100) print_bitmap(&face->glyph->bitmap);
+
+        size_t total_pixels = face->glyph->bitmap.width * face->glyph->bitmap.rows;
+        U8* gray_alpha_data = (U8*)malloc(total_pixels * 2); 
+        for (size_t i = 0; i < total_pixels; i++) {
+            gray_alpha_data[i * 2 + 0] = face->glyph->bitmap.buffer[i];
+            gray_alpha_data[i * 2 + 1] = (face->glyph->bitmap.buffer[i] < 0) ? 0 : face->glyph->bitmap.buffer[i];
+        };
+
+        font.bitmap[c].width = face->glyph->bitmap.width;
+        font.bitmap[c].rows = face->glyph->bitmap.rows;
+        font.bitmap[c].bearingX = face->glyph->bitmap_left;
+        font.bitmap[c].bearingY = face->glyph->bitmap_top;
+        font.bitmap[c].advance = face->glyph->advance.x;
+        font.bitmap[c].buffer = gray_alpha_data;
+        font.bitmap[c].pitch = face->glyph->bitmap.pitch;
+    };
+ 
+    ctx->fonts->items[ctx->fonts->index++] = font;
+    printf("pixel_mode:%i\n", face->glyph->bitmap.pixel_mode);
+
+    FT_Done_Face(face);
+    FT_Done_FreeType(ft);
 };
 
 void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget) {
@@ -51,8 +122,6 @@ void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget) {
 
 ruin_Id hash_string(ruin_Context* ctx, const char* str) {
     if (str == NULL || str[0] == '\0') return RUIN_TRANSIENT_ID;
-
-    // if (!is_stack_empty(&ctx->parent_stack)) printf("%llu\n", get_top(&ctx->parent_stack)->id);
 
     char buf[64];
     ruin_Id parent_id = is_stack_empty(&ctx->parent_stack) ? RUIN_TRANSIENT_ID: get_top(&ctx->parent_stack)->id;
@@ -85,50 +154,11 @@ ruin_Context* create_ruin_context() {
     ctx->windows.index = 0;
     ctx->parent_stack.top = -1;
 
-    ctx->font_size = (ctx->font_size == 0) ? 14 : ctx->font_size;
+    // ctx->font_size = (ctx->font_size == 0) ? 14 : ctx->font_size;
     push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     push_color_stack(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     push_color_stack(&ctx->hover_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
     push_color_stack(&ctx->active_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
-
-    FT_Library ft;
-    if (FT_Init_FreeType(&ft)) {
-        fprintf(stderr, "Freetype Init Problem");
-    };
-
-    FT_Face face;
-    if (FT_New_Face(ft, "resources/jetbrains.ttf", 0, &face)) {
-        fprintf(stderr, "Freetype Face Creation Problem");
-    };
-    FT_Set_Pixel_Sizes(face, 0, ctx->font_size);
-
-    for (unsigned char c = 0; c < 128; c++) {
-        if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-            fprintf(stderr, "ERROR::FREETYTPE: Failed to load Glyph");
-            continue;
-        }
-
-        size_t total_pixels = face->glyph->bitmap.width * face->glyph->bitmap.rows;
-        U8* gray_alpha_data = (U8*)malloc(total_pixels * 2); 
-        for (size_t i = 0; i < total_pixels; i++) {
-            gray_alpha_data[i * 2 + 0] = face->glyph->bitmap.buffer[i];
-            gray_alpha_data[i * 2 + 1] = (face->glyph->bitmap.buffer[i] < 0) ? 0 : face->glyph->bitmap.buffer[i];
-        };
-
-        ctx->font[c] = (ruin_CharInfo) {
-            .width = face->glyph->bitmap.width,
-            .rows = face->glyph->bitmap.rows,
-            .bearingX = face->glyph->bitmap_left,
-            .bearingY = face->glyph->bitmap_top,
-            .advance = face->glyph->advance.x,
-            .buffer = gray_alpha_data,
-        };
-    }
-
-    ctx->highest_bearing_y = ctx->font[108].bearingY;
-
-    FT_Done_Face(face);
-    FT_Done_FreeType(ft);
 
     return ctx;
 };

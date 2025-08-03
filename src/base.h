@@ -204,12 +204,10 @@ void temp_arena_memory_end(Temp_Arena_Memory temp);
 
 // GENREIC STACKS
 #define DECLARE_STACK(name, type) typedef struct {S16 top; type items[4];} type##Stack;\
-    internal bool is_##name##_stack_empty(type##Stack* stack) { return (stack->top == -1); };\
-    internal type* get_##name##_stack_top(type##Stack* stack) { return (stack->top == -1) ? NULL: &stack->items[stack->top]; };\
-    internal type* pop_##name##_stack(type##Stack* stack) { return (stack->top == -1) ? NULL: &stack->items[stack->top--]; };\
-    internal void push_##name##_stack(type##Stack* stack, type item) { stack->items[++stack->top] = item; };\
-
-
+     internal bool is_##name##_stack_empty(type##Stack* stack) { return (stack->top == -1); };\
+     internal type* get_##name##_stack_top(type##Stack* stack) { return (stack->top == -1) ? NULL: &stack->items[stack->top]; };\
+     internal type* pop_##name##_stack(type##Stack* stack) { return (stack->top == -1) ? NULL: &stack->items[stack->top--]; };\
+     internal void push_##name##_stack(type##Stack* stack, type item) { stack->items[++stack->top] = item; };\
 
 typedef struct { size_t len; char *data; } String8;
 #define String8(x) (String8){strlen(x), x}
@@ -223,5 +221,25 @@ String8 str_substring_view(String8 haystack, String8 needle);
 bool str_equal(String8 a, String8 b);
 String8 str_view(String8 s, size_t start, size_t end);
 
+#define DECLARE_ARRAY(name, type) \
+    typedef struct { size_t index; size_t capacity; type* items; } type##Array;\
+    type* get_##name(type##Array* array, size_t i);\
+    type##Array* create_##name(Arena* arena, type* array, size_t size);         \
+    
+
+#define DEFINE_ARRAY(name, type) \
+    type* get_##name(type##Array* array, size_t i) { if (array->index < 0) { fprintf(stderr, "Bruh! INVALID\n"); return 0; }; return &array->items[i]; };  \
+    type##Array* create_##name(Arena* arena, type* array, size_t size) {         \
+        type##Array* res = (type##Array*)arena_alloc(arena, sizeof(type) * size);                    \
+        res->capacity = size + 2;                                                     \
+        res->index = 0;                                                               \
+        for (int i = 0; i < size; ++i) { res->items[i] = array[i]; res->index++; };   \
+        return res;                                                                   \
+    };                                                                                \
 
 #endif
+
+
+
+
+

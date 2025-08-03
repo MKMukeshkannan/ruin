@@ -55,14 +55,26 @@ typedef struct ruin_Rect            { F32 x, y, h, w; }                         
 typedef struct ruin_Color           { U8 r, g, b, a; }                                                                                           ruin_Color;
 typedef struct ruin_RectSide        { U8 left, right, top, bottom; }                                                                         ruin_RectSide;
 
-typedef struct ruin_CharInfo { 
+DECLARE_ARRAY(u32, U32);
+
+typedef struct ruin_Bitmap {
     U32 width;
     U32 rows;
     S32 bearingX;
     S32 bearingY;
     S64 advance;
+    S64 pitch;
     U8* buffer;
-} ruin_CharInfo;
+} ruin_Bitmap;
+typedef struct ruin_FontInfo {
+    String8         font_name;
+    U32             font_size;
+    ruin_Bitmap     bitmap[128];
+} ruin_FontInfo;
+
+DECLARE_ARRAY(fontInfo, ruin_FontInfo);
+
+
 ruin_Color make_color_hex(U32 color);
 
 typedef struct ruin_DrawCall {
@@ -146,12 +158,12 @@ typedef struct {
     } draw_queue;
 
     Arena arena;       // persisted arena, across frames
-    Arena temp_arena; // reseted every frames, holds transient widgets
-    ruin_Window* current_window;
+    Arena temp_arena;  // reseted every frames, holds transient widgets
 
-    float font_size;
-    float highest_bearing_y; // lenght of the tallest character from base line, use to make top left as orgin
-    ruin_CharInfo font[128];
+    Arena font_build;  // happens once, stores all glyph, bitmap and codespace information
+    ruin_FontInfoArray* fonts;
+                       
+    ruin_Window* current_window;
 
     ruin_Vec2 mouse_position;
     ruin_Id hot;
@@ -170,6 +182,8 @@ typedef struct {
 } ruin_Context;
 
 ruin_Id hash_string(ruin_Context* ctx, const char* str);
+void ruin_SetFontCount(ruin_Context* ctx, size_t number_of_font_sizes);
+void ruin_LoadFont(ruin_Context* ctx, const char* path, const char* name, U32 font_size);
 ruin_Context* create_ruin_context();
 ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_Id id, ruin_WidgetOptions opt);
 

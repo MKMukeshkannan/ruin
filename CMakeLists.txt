@@ -13,6 +13,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
 
 set(CMAKE_BUILD_TYPE "Debug")
 
+add_compile_definitions(USE_FREETYPE)
 
 add_subdirectory(src)
 add_subdirectory(examples)
