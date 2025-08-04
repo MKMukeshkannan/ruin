@@ -17,12 +17,10 @@ int main(void) {
 
     ruin_Context* ctx = create_ruin_context();
 
-    U32 sizes[] = {16, 20, 24, 32, 48};
-
-    ruin_SetFontCount(ctx, 2);
-    ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_800", 16);
-    // ruin_LoadFont(ctx, "resources/inter_semi.ttf", "INTER_800", 16);
-    // ruin_LoadFont(ctx, "resources/inter.ttf", "INTER_500", 16);
+    ruin_SetFontCount(ctx, 3);
+    // ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_800", 30);
+//     ruin_LoadFont(ctx, "resources/inter_semi.ttf", "INTER_800", 16);
+     ruin_LoadFont(ctx, "resources/inter.ttf", "INTER_500", 16);
 
     ruin_RaylibInit(ctx);
 
@@ -41,17 +39,17 @@ int main(void) {
 
 
         ruin_Label(ctx, "Image Editor");
-        ruin_SameLine(ctx, "grain_group") {
-            ruin_Label(ctx, "grain");
-            ruin_SpacerFillX(ctx);
-            ruin_Label(ctx, "20");
-        };
-        ruin_SameLine(ctx, "grain_group2") {
-            ruin_Label(ctx, "grain");
-            ruin_SpacerFillX(ctx);
-            ruin_Label(ctx, "20");
-        };
-        
+       ruin_SameLine(ctx, "grain_group") {
+           ruin_Label(ctx, "grain");
+           ruin_SpacerFillX(ctx);
+           ruin_Button(ctx, "20");
+       };
+       ruin_SameLine(ctx, "grain_group2") {
+           ruin_Label(ctx, "grain");
+           ruin_SpacerFillX(ctx);
+           ruin_Button(ctx, "click connect");
+       };
+       
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY

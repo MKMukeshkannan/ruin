@@ -1,4 +1,5 @@
 #include <ft2build.h>
+#include <stdio.h>
 #include FT_FREETYPE_H
 
 #include "ruin_core.h"
@@ -8,19 +9,21 @@ DEFINE_ARRAY(u32, U32);
 
 void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
    if (array->index >= array->capacity) return;
-   // array->items[array->index++] = font;
+   array->items[array->index++] = *font;
 };
-
 
 internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
-    return 0;
-};
-internal F32 ruin_GetHeight(ruin_Context* ctx, String8 string) {
-    return 16;
+
+    F32 width = 0;
+    for (int i = 0; i < string.len; ++i) {
+        width += (ctx->fonts->items[0].bitmap[string.data[i]].advance >> 6); 
+    };
+
+    return width;
 };
 
 void ruin_SetFontCount(ruin_Context *ctx, size_t number_of_font_sizes) {
-    const U32 ARENA_SIZE = 12096;
+    const U32 ARENA_SIZE = 32096;
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
@@ -32,17 +35,6 @@ void ruin_SetFontCount(ruin_Context *ctx, size_t number_of_font_sizes) {
     ctx->fonts->index = 0;
     ctx->fonts->items = (ruin_FontInfo*)arena_alloc(&ctx->font_build, sizeof(ruin_FontInfo) * number_of_font_sizes);
 };
-
-void print_bitmap(FT_Bitmap *bitmap) {
-    for (int i = 0; i < bitmap->rows; ++i) {
-        for (int j = 0; j < bitmap->width; ++j) {
-            unsigned char pixel = bitmap->buffer[i * bitmap->pitch + j];
-            putchar(pixel > 128 ? '#' : ' ');
-        }
-        putchar('\n');
-    }
-}
-
 
 void ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 font_size) { 
     String8 str_name = str_from_cstr(name, &ctx->arena);
@@ -69,8 +61,6 @@ void ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 fo
             continue;
         };
 
-        if (c == 100) print_bitmap(&face->glyph->bitmap);
-
         size_t total_pixels = face->glyph->bitmap.width * face->glyph->bitmap.rows;
         U8* gray_alpha_data = (U8*)malloc(total_pixels * 2); 
         for (size_t i = 0; i < total_pixels; i++) {
@@ -79,16 +69,18 @@ void ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 fo
         };
 
         font.bitmap[c].width = face->glyph->bitmap.width;
+        font.bitmap[c].height = face->size->metrics.height;
         font.bitmap[c].rows = face->glyph->bitmap.rows;
         font.bitmap[c].bearingX = face->glyph->bitmap_left;
         font.bitmap[c].bearingY = face->glyph->bitmap_top;
         font.bitmap[c].advance = face->glyph->advance.x;
         font.bitmap[c].buffer = gray_alpha_data;
         font.bitmap[c].pitch = face->glyph->bitmap.pitch;
+        
     };
  
-    ctx->fonts->items[ctx->fonts->index++] = font;
-    printf("pixel_mode:%i\n", face->glyph->bitmap.pixel_mode);
+    push_font_info(ctx->fonts, &font);
+
 
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
@@ -322,7 +314,7 @@ internal void compute__raw_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_sta
             current_top->fixed_size.x = ruin_GetWidth(ctx, current_top->display_text);
 
         if (current_top->size[RUIN_AXISY].kind == RUIN_SIZEKIND_TEXTCONTENT) 
-            current_top->fixed_size.y = ruin_GetHeight(ctx, current_top->display_text);
+            current_top->fixed_size.y = (F32)ctx->fonts->items[0].bitmap[0].height / 64;
 
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
             push(widget_stack, widget);

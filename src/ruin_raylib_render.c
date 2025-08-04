@@ -46,13 +46,12 @@ void ruin_RaylibInit(ruin_Context* ctx) {
 
 #ifdef USE_FREETYPE
 void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y, float scale, ruin_Color color) {
-//
     ruin_FontInfoArray* fonts = ctx->fonts;
     ruin_Bitmap current_char;
     size_t i = 0;
     
-//    // TODO: ::font:: make it variable for all font sizes
-//    y += ctx->highest_bearing_y;
+    // TODO: ::font:: make it variable for all font sizes
+    y += fonts->items[0].font_size;
     while (string[i] != '\0') {
         current_char = fonts->items[0].bitmap[string[i]];
         float xpos = x + current_char.bearingX * scale;
@@ -100,6 +99,7 @@ void ruin_RaylibRender(ruin_Context* ctx) {
        };
    };
 
+   // ruin_RaylibDrawText(ctx, "Hello", 0, 0, 1, (ruin_Color) {});
 
    ctx->draw_queue.index = 0;
 

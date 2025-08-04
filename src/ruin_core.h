@@ -59,6 +59,7 @@ DECLARE_ARRAY(u32, U32);
 
 typedef struct ruin_Bitmap {
     U32 width;
+    S64 height;
     U32 rows;
     S32 bearingX;
     S32 bearingY;
