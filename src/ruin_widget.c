@@ -35,9 +35,9 @@ B8 ruin_Label(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(ctx, label);
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) {
-        push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=255, .b=0, .g=0, .a=255});
+        // push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=255, .b=0, .g=0, .a=255});
         label_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND);
-        pop_color_stack(&ctx->background_color_stack);
+        // pop_color_stack(&ctx->background_color_stack);
     };
     push_widget_narry(get_top(&ctx->parent_stack), label_widget);
 

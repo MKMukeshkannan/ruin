@@ -11,16 +11,14 @@ int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 800;
 
-    SetTraceLogCallback(CustomLog); // call this before InitWindow()
-    // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetTraceLogCallback(CustomLog);
     InitWindow(screenWidth, screenHeight, "THIS IS A WINDOW");
 
     ruin_Context* ctx = create_ruin_context();
 
-    ruin_SetFontCount(ctx, 3);
-    // ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_800", 30);
-//     ruin_LoadFont(ctx, "resources/inter_semi.ttf", "INTER_800", 16);
-     ruin_LoadFont(ctx, "resources/inter.ttf", "INTER_500", 16);
+    ruin_SetFontCount(ctx, 2);
+    ruin_FontID jetbrains_16 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_16", 16);
+    ruin_FontID jetbrains_20 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_20", 20);
 
     ruin_RaylibInit(ctx);
 
@@ -29,7 +27,7 @@ int main(void) {
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
 
-        ClearBackground(RAYWHITE);
+        ClearBackground(GRAY);
 
 
         //
@@ -38,7 +36,10 @@ int main(void) {
 
 
 
-        ruin_Label(ctx, "Image Editor");
+       push_font_stack(&ctx->font_stack, jetbrains_20);
+       ruin_Label(ctx, "Image Editor");
+       pop_font_stack(&ctx->font_stack);
+
        ruin_SameLine(ctx, "grain_group") {
            ruin_Label(ctx, "grain");
            ruin_SpacerFillX(ctx);
@@ -50,6 +51,10 @@ int main(void) {
            ruin_Button(ctx, "click connect");
        };
        
+
+
+
+
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY

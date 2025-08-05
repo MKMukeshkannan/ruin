@@ -74,7 +74,6 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
 
 void ruin_RaylibRender(ruin_Context* ctx) {
 
-
    BeginDrawing();
    // ruin_CharInfo* char_info = ctx->font;
 

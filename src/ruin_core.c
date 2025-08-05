@@ -12,12 +12,30 @@ void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
    array->items[array->index++] = *font;
 };
 
-internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
-
-    F32 width = 0;
-    for (int i = 0; i < string.len; ++i) {
-        width += (ctx->fonts->items[0].bitmap[string.data[i]].advance >> 6); 
+ruin_FontInfo* get_current_active_font(ruin_Context* ctx) {
+    ruin_FontID* id = get_font_stack_top(&ctx->font_stack) - 1;
+    printf("%lu\n", *id);
+    String8 name = ctx->fonts->items[*id].font_name;
+    if (name.data == NULL) {
+        printf("empty stack\n");
+        return NULL;
     };
+
+    ruin_FontInfoArray* font_array = ctx->fonts;
+    for (int i = 0; i < font_array->index; ++i) {
+        if (str_equal(name, font_array->items[i].font_name)) {
+            return &font_array->items[i];
+        }
+    };
+
+    printf("cannot find requedsted font\n");
+    return NULL;
+};
+
+internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
+    F32 width = 0;
+    for (int i = 0; i < string.len; ++i)
+        width += (get_current_active_font(ctx)->bitmap[string.data[i]].advance >> 6); 
 
     return width;
 };
@@ -36,7 +54,7 @@ void ruin_SetFontCount(ruin_Context *ctx, size_t number_of_font_sizes) {
     ctx->fonts->items = (ruin_FontInfo*)arena_alloc(&ctx->font_build, sizeof(ruin_FontInfo) * number_of_font_sizes);
 };
 
-void ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 font_size) { 
+ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 font_size) { 
     String8 str_name = str_from_cstr(name, &ctx->arena);
 
     ruin_FontInfo font;
@@ -80,10 +98,14 @@ void ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 fo
     };
  
     push_font_info(ctx->fonts, &font);
+    if (!is_font_stack_empty(&ctx->font_stack)) pop_font_stack(&ctx->font_stack);
+    push_font_stack(&ctx->font_stack, ctx->fonts->index);
 
 
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
+
+    return ctx->fonts->index;
 };
 
 void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget) {
@@ -176,8 +198,6 @@ ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id) {
 internal String8 id_seperator = String8("##");
 ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_Id id, ruin_WidgetOptions opt) {
 
-
-
     ruin_Widget* widget = (id != RUIN_TRANSIENT_ID)
         ? (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget))
         : (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
@@ -232,6 +252,7 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
 void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin_WindowFlags flags) {
     ruin_Id id = hash_string(ctx, title);
     ruin_Window* window = get_window_by_id(ctx, id);
+
 
     if (window == NULL) {
         window = (ruin_Window*)arena_alloc(&ctx->arena, sizeof(ruin_Window));

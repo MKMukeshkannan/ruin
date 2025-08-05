@@ -140,9 +140,50 @@ struct ruin_Window {
     ruin_Id id;
 };
 
-DECLARE_STACK(color, ruin_Color);
-DECLARE_STACK(axis, ruin_Axis);
-DECLARE_STACK(rectsides, ruin_RectSide);
+typedef size_t ruin_FontID;
+
+/* STUFF BELOW ARE GENEATED WITH MACROS
+*
+* DECLARE_STACK(color, ruin_Color);
+* DECLARE_STACK(axis, ruin_Axis);
+* DECLARE_STACK(rectsides, ruin_RectSide);
+* DECLARE_STACK(font, ruin_FontID);
+*/
+typedef struct {
+  S16 top;
+  ruin_Color items[4];
+} ruin_ColorStack;
+static bool is_color_stack_empty(ruin_ColorStack *stack) { return (stack->top == -1); };
+static ruin_Color *get_color_stack_top(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+static ruin_Color *pop_color_stack(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+static void push_color_stack(ruin_ColorStack *stack, ruin_Color item) { stack->items[++stack->top] = item; };
+
+typedef struct {
+  S16 top;
+  ruin_Axis items[4];
+} ruin_AxisStack;
+static _Bool is_axis_stack_empty(ruin_AxisStack *stack) { return (stack->top == -1); };
+static ruin_Axis *get_axis_stack_top(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+static ruin_Axis *pop_axis_stack(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+static void push_axis_stack(ruin_AxisStack *stack, ruin_Axis item) { stack->items[++stack->top] = item; };
+
+typedef struct {
+  S16 top;
+  ruin_RectSide items[4];
+} ruin_RectSideStack;
+static _Bool is_rectsides_stack_empty(ruin_RectSideStack *stack) { return (stack->top == -1); };
+static ruin_RectSide *get_rectsides_stack_top(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+static ruin_RectSide *pop_rectsides_stack(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+static void push_rectsides_stack(ruin_RectSideStack *stack, ruin_RectSide item) { stack->items[++stack->top] = item; };
+
+typedef struct {
+  S16 top;
+  ruin_FontID items[4];
+} ruin_FontIDStack;
+static _Bool is_font_stack_empty(ruin_FontIDStack *stack) { return (stack->top == -1); };
+static ruin_FontID *get_font_stack_top(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+static ruin_FontID *pop_font_stack(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->items[++stack->top] = item; };
 
 typedef struct {
     struct {
@@ -178,13 +219,14 @@ typedef struct {
     ruin_ColorStack    active_color_stack;
     ruin_RectSideStack padding_stack; 
     ruin_AxisStack     child_direction_stack;
+    ruin_FontIDStack   font_stack;
 
     ruin_WidgetStack parent_stack;
 } ruin_Context;
 
 ruin_Id hash_string(ruin_Context* ctx, const char* str);
 void ruin_SetFontCount(ruin_Context* ctx, size_t number_of_font_sizes);
-void ruin_LoadFont(ruin_Context* ctx, const char* path, const char* name, U32 font_size);
+ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char* path, const char* name, U32 font_size);
 ruin_Context* create_ruin_context();
 ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_Id id, ruin_WidgetOptions opt);
 
