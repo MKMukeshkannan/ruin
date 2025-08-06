@@ -133,7 +133,7 @@ ruin_Id hash_string(ruin_Context* ctx, const char* str) {
     if (str == NULL || str[0] == '\0') return RUIN_TRANSIENT_ID;
 
     char buf[64];
-    ruin_Id parent_id = is_stack_empty(&ctx->parent_stack) ? RUIN_TRANSIENT_ID: get_top(&ctx->parent_stack)->id;
+    ruin_Id parent_id = ruin_WidgetStack__IsEmpty(ctx->parent_stack) ? RUIN_TRANSIENT_ID: ruin_WidgetStack__GetTop(ctx->parent_stack)->id;
     snprintf(buf, sizeof(buf), "seed%llu_label%s", parent_id, str);
 
     ruin_Id hash = 5381; int c; int i = 0;
@@ -162,7 +162,7 @@ ruin_Context* create_ruin_context() {
     ctx->widgets = ruin_WidgetArray__Init(&arena, WIDGET_ARRAY);
     ctx->windows = ruin_WindowArray__Init(&arena, WINDOW_ARRAY);
 
-    ctx->parent_stack.top = -1;
+    ctx->parent_stack = ruin_WidgetStack__Init(&arena);
 
     push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     push_color_stack(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
@@ -285,20 +285,19 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     };
     root->first_child = NULL;
     window->root_widget = root;
-    push(&ctx->parent_stack, root);
+    ruin_WidgetStack__Push(ctx->parent_stack, root);
 };
 
 void ruin_EndWindow(ruin_Context* ctx) {
     ctx->current_window = NULL;
-    pop(&ctx->parent_stack);
+    ruin_WidgetStack__Pop(ctx->parent_stack);
 };
 
 
 internal void compute__raw_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_stack, ruin_Widget* root) {
-    push(widget_stack, root);
-    // printf("pushing stack:%s\n", widget_stack->items[widget_stack->top]->display_text.data);
-    while (!is_stack_empty(widget_stack)) {
-        ruin_Widget* current_top = pop(widget_stack);
+    ruin_WidgetStack__Push(widget_stack, root); 
+    while (!ruin_WidgetStack__IsEmpty(widget_stack)) {
+        ruin_Widget* current_top = ruin_WidgetStack__Pop(widget_stack);
 
         if (current_top->parent != NULL) {
             current_top->parent->partially_offset.x = 0;
@@ -318,17 +317,18 @@ internal void compute__raw_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_sta
             current_top->fixed_size.y = (F32)ctx->fonts->items[0].bitmap[0].height / 64;
 
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
-            push(widget_stack, widget);
+            ruin_WidgetStack__Push(widget_stack, widget);
     };
-    clear_stack(widget_stack);
+    ruin_WidgetStack__Clear(widget_stack);
 };
 
 internal void compute__parent_depend_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_stack, ruin_Widget* root) {
-    push(widget_stack, root);
-    while (!is_stack_empty(widget_stack)) {
-        ruin_Widget* current_top = pop(widget_stack);
+    ruin_WidgetStack__Push(widget_stack, root);
+    while (!ruin_WidgetStack__IsEmpty(widget_stack)) {
+        ruin_Widget* current_top = ruin_WidgetStack__Pop(widget_stack);
+
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
-            push(widget_stack, widget);
+            ruin_WidgetStack__Push(widget_stack, widget);
 
         if (current_top->parent == NULL) continue;
 
@@ -342,21 +342,20 @@ internal void compute__parent_depend_sizes(ruin_Context* ctx, ruin_WidgetStack* 
             current_top->fixed_size.y = (current_top->size[RUIN_AXISY].value * current_top->parent->fixed_size.y) - y_padding;
 
     };
-
-    clear_stack(widget_stack);
+    ruin_WidgetStack__Clear(widget_stack);
 };
 
 internal void compute__child_depend_sizes(ruin_Context* ctx, ruin_WidgetStack* stack_1, ruin_WidgetStack* stack_2, ruin_Widget* root) {
-    push(stack_1, root);
-    while (!is_stack_empty(stack_1)) {
-        ruin_Widget* current_top = pop(stack_1);
-        push(stack_2, current_top);
+    ruin_WidgetStack__Push(stack_1, root);
+    while (!ruin_WidgetStack__IsEmpty(stack_1)) {
+        ruin_Widget* current_top = ruin_WidgetStack__Pop(stack_1);
+        ruin_WidgetStack__Push(stack_2, current_top);
 
-        for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) push(stack_1, widget);
+        for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) ruin_WidgetStack__Push(stack_1, widget);
     };
 
-    while (!is_stack_empty(stack_2)) {
-        ruin_Widget* curr = pop(stack_2);
+    while (!ruin_WidgetStack__IsEmpty(stack_2)) {
+        ruin_Widget* curr = ruin_WidgetStack__Pop(stack_2);
         int childsum_x = 0, childsum_y = 0, childmax_x = -1, childmax_y = -1;
         for (ruin_Widget* widget = curr->last_child; widget != NULL; widget = widget->prev_sibling) {
 
@@ -380,14 +379,14 @@ internal void compute__child_depend_sizes(ruin_Context* ctx, ruin_WidgetStack* s
         }
     }
 
-    clear_stack(stack_1);
-    clear_stack(stack_2);
+    ruin_WidgetStack__Clear(stack_1);
+    ruin_WidgetStack__Clear(stack_2);
 };
 
 internal void compute__growable_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_stack, ruin_Widget* root) {
-    push(widget_stack, root);
-    while (!is_stack_empty(widget_stack)) {
-        ruin_Widget* current_top = pop(widget_stack);
+    ruin_WidgetStack__Push(widget_stack, root);
+    while (!ruin_WidgetStack__IsEmpty(widget_stack)) {
+        ruin_Widget* current_top = ruin_WidgetStack__Pop(widget_stack);
 
         if (current_top->child_layout_axis == RUIN_AXISX) {
             int rem_width = 
@@ -419,18 +418,20 @@ internal void compute__growable_sizes(ruin_Context* ctx, ruin_WidgetStack* widge
 
 
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
-            push(widget_stack, widget);
+            ruin_WidgetStack__Push(widget_stack, widget);
     };
 
-    clear_stack(widget_stack);
+    ruin_WidgetStack__Clear(widget_stack);
 };
 
 internal void compute__draw_coordinates(ruin_Context* ctx, ruin_WidgetStack* widget_stack, ruin_Widget* root) {
-    push(widget_stack, root);
 
-    while (!is_stack_empty(widget_stack)) {
-        ruin_Widget* current_top = pop(widget_stack);
-        for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) push(widget_stack, widget);
+    ruin_WidgetStack__Push(widget_stack, root);
+    while (!ruin_WidgetStack__IsEmpty(widget_stack)) {
+        ruin_Widget* current_top = ruin_WidgetStack__Pop(widget_stack);
+
+        for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) 
+            ruin_WidgetStack__Push(widget_stack, widget);
 
 
         if (current_top->parent == NULL) continue;
@@ -475,13 +476,13 @@ internal void compute__draw_coordinates(ruin_Context* ctx, ruin_WidgetStack* wid
         // printf("frame:%llu - name:%s \n\tx:%f y:%f w:%f h:%f \n\tww:%f hh:%f\n\tfx:%f fy:%f\n", ctx->frame, current_top->widget_name.data, rect.x, rect.y, rect.w, rect.h, rect.w - rect.x, rect.h - rect.y, current_top->fixed_size.x, current_top->fixed_size.y);
     };
 
-    widget_stack->top = -1;
+    ruin_WidgetStack__Clear(widget_stack);
 };
 
 internal void generate__draw_calls(ruin_Context* ctx, ruin_WidgetStack* widget_stack, ruin_Widget* root) {
-    push(widget_stack, root);
-    while (!is_stack_empty(widget_stack)) {
-        ruin_Widget* current_top = pop(widget_stack);
+    ruin_WidgetStack__Push(widget_stack, root);
+    while (!ruin_WidgetStack__IsEmpty(widget_stack)) {
+        ruin_Widget* current_top = ruin_WidgetStack__Pop(widget_stack);
 
 
         ruin_Rect rect = current_top->draw_coords.bbox;
@@ -511,18 +512,18 @@ internal void generate__draw_calls(ruin_Context* ctx, ruin_WidgetStack* widget_s
         }
 
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) { 
-            push(widget_stack, widget);
+            ruin_WidgetStack__Push(widget_stack, widget);
         }
     };
 
-    clear_stack(widget_stack);
+    ruin_WidgetStack__Clear(widget_stack);
 };
 
 void ruin_ComputeLayout(ruin_Context* ctx) { 
 
     Temp_Arena_Memory temp_mem = temp_arena_memory_begin(&ctx->arena);
-    ruin_WidgetStack* widget_stack = create_stack(temp_mem);
-    ruin_WidgetStack* widget_stack2 = create_stack(temp_mem); // FOR POST ORDER ONLY
+    ruin_WidgetStack* widget_stack = ruin_WidgetStack__Init(temp_mem.arena);
+    ruin_WidgetStack* widget_stack2 = ruin_WidgetStack__Init(temp_mem.arena);
 
     for (size_t i = 0; i < ctx->windows.index; ++i) {
         ruin_Widget* root = ruin_WindowArray__Get(&ctx->windows, i)->root_widget;

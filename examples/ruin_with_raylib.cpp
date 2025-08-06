@@ -24,6 +24,9 @@ int main(void) {
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
+
+
+
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
 
@@ -57,7 +60,6 @@ int main(void) {
 
         ruin_ComputeLayout(ctx);
         ruin_RaylibRender(ctx);
-        ctx->frame++;
     };
     CloseWindow();
 

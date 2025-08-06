@@ -6,7 +6,6 @@
 extern "C" {
 #endif
 
-
 #include "base.h"
 
 #define RUIN_TRANSIENT_ID    (U64)-1
@@ -121,22 +120,19 @@ struct ruin_Widget {
     U32 child_count;
 };
 
-typedef struct { S16 top; ruin_Widget* items[100]; } ruin_WidgetStack;
-internal ruin_WidgetStack* create_stack(Temp_Arena_Memory temp) { ruin_WidgetStack* stack = (ruin_WidgetStack*)arena_alloc(temp.arena, sizeof(ruin_WidgetStack)); MEM_ZERO(stack, sizeof(ruin_WidgetStack)); stack->top = -1; return stack; };
-internal ruin_Widget* get_top(ruin_WidgetStack* stack) { if (stack->top == -1) { return NULL; }; return stack->items[stack->top]; };
-internal ruin_Widget* pop(ruin_WidgetStack* stack) { if (stack->top == -1) return NULL; return stack->items[stack->top--]; };
-internal void push(ruin_WidgetStack* stack, ruin_Widget* widget) { stack->items[++stack->top] = widget; };
-internal bool is_stack_empty(ruin_WidgetStack* stack) { return (stack->top == -1); };
-internal void clear_stack(ruin_WidgetStack* stack) {stack->top = -1;};
+// typedef struct { S16 top; ruin_Widget* items[100]; } ruin_WidgetStack;
+// internal ruin_WidgetStack* create_stack(Temp_Arena_Memory temp) { ruin_WidgetStack* stack = (ruin_WidgetStack*)arena_alloc(temp.arena, sizeof(ruin_WidgetStack)); MEM_ZERO(stack, sizeof(ruin_WidgetStack)); stack->top = -1; return stack; };
+// internal ruin_Widget* get_top(ruin_WidgetStack* stack) { if (stack->top == -1) { return NULL; }; return stack->items[stack->top]; };
+// internal ruin_Widget* pop(ruin_WidgetStack* stack) { if (stack->top == -1) return NULL; return stack->items[stack->top--]; };
+// internal void push(ruin_WidgetStack* stack, ruin_Widget* widget) { stack->items[++stack->top] = widget; };
+// internal bool is_stack_empty(ruin_WidgetStack* stack) { return (stack->top == -1); };
+// internal void clear_stack(ruin_WidgetStack* stack) {stack->top = -1;};
 
-typedef struct ruin_Window                     ruin_Window;
+typedef struct ruin_Window ruin_Window;
 struct ruin_Window {
     ruin_Rect window_rect;
     ruin_Widget* root_widget;  // window tree, donot persist across frames
     const char* title;
-
-    ruin_Window* next;
-    ruin_Window* prev;
     char window_flags;
     ruin_Id id;
 };
@@ -191,7 +187,7 @@ static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define DEFINE(type) typedef struct { U32 index; U32 capacity; type* items; } type##Array; \
+#define DEFINE_ARRAY_CACHES(type) typedef struct { U32 index; U32 capacity; type* items; } type##Array; \
     internal type* type##Array__Get(type##Array* array, U32 index) { \
         if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", STR(type##Array__Get)); return NULL; }; \
         if (array->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY ITEMS POINTER ON %s\n", STR(type##Array__Get)); return NULL; }; \
@@ -200,7 +196,7 @@ static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->
     }; \
     internal type* type##Array__Push(type##Array *array, type element) { \
         if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", STR(type##Array__Push)); return NULL; }; \
-        if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", STR(type##Array__Push)); return NULL; }; \
+        if (array->items == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY ITEMS POINTER ON %s\n", STR(type##Array__Push)); return NULL; }; \
         if (array->index >= array->capacity) { fprintf(stderr, "[RUIN_ERROR]: ARRAY CAPACITY EXCEEDED ON %s\n", STR(type##Array__Push)); return NULL; }; \
         array->items[array->index++] = element; \
         return &array->items[array->index - 1];\
@@ -213,16 +209,131 @@ static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->
         return res; \
     }; \
 
-DEFINE(ruin_Widget);
-DEFINE(ruin_Window);
+#define DEFINE_STACKS(type) typedef struct { U32 top; U32 capacity; type* items; } type##Stack; \
+    internal bool type##Stack__IsEmpty(type##Stack* stack) { \
+        if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__IsEmpty)); return false; }; \
+        if (stack->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__IsEmpty)); return false; }; \
+        return (stack->top == 0); \
+    }; \
+    internal type* type##Stack__GetTop(type##Stack* stack) { \
+        if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__Get)); return NULL; }; \
+        if (stack->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__Get)); return NULL; }; \
+        if (stack->top == 0 || stack->top > stack->capacity) { fprintf(stderr, "[RUIN_ERROR]: INVALID TOP ACCESS ON %s\n", STR(type##Stack__Get)); return NULL; }; \
+        return &stack->items[stack->top - 1]; \
+    }; \
+    internal type* type##Stack__Push(type##Stack *stack, type element) { \
+        if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__Push)); return NULL; }; \
+        if (stack->items == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__Push)); return NULL; }; \
+        if (stack->top >= stack->capacity) { fprintf(stderr, "[RUIN_ERROR]: STACK CAPACITY EXCEEDED ON %s\n", STR(type##Stack__Push)); return NULL; }; \
+        stack->items[stack->top++] = element; \
+        return &stack->items[stack->top - 1];\
+    }; \
+    internal type* type##Stack__Pop(type##Stack *stack) {\
+        if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__Pop)); return NULL; }; \
+        if (stack->items == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__Pop)); return NULL; }; \
+        if (stack->top == 0) { fprintf(stderr, "[RUIN_ERROR]: STACK ALREADY EMPTY %s\n", STR(type##Stack__Pop)); return NULL; }; \
+        return &stack->items[stack->top - 1];\
+    };\
+    internal type##Stack type##Stack__Init(Arena* arena, U32 capacity) { \
+        type##Stack res; res.top = 0; res.capacity = capacity;\
+        if (arena == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARENA POINTER on %s\n", STR(type##Stack__Init)); return res; }; \
+        res.items = (type*)arena_alloc(arena, sizeof(type) * capacity); \
+        if (res.items == NULL) { fprintf(stderr, "[RUIN_ERROR]: UNABLE TO ALLOCATE %s -> items\n", STR(type##Stack)); }; \
+        return res; \
+    }; \
+    internal void type##Stack__Clear(type##Stack* stack) { \
+        if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__Clear)); return; }; \
+        if (stack->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__Clear)); return; }; \
+        stack->top = 0; \
+    }; \
+
+DEFINE_ARRAY_CACHES(ruin_Widget);
+DEFINE_ARRAY_CACHES(ruin_Window);
+
+// DEFINE_STACKS(ruin_Widget);
+typedef struct {
+    U32 top;
+    U32 capacity;
+    ruin_Widget* items[20];
+} ruin_WidgetStack;
+
+internal bool ruin_WidgetStack__IsEmpty(ruin_WidgetStack* stack) {
+    if (stack == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(ruin_WidgetStack__IsEmpty));
+        return false;
+    };
+    return (stack->top == 0);
+};
+
+internal ruin_Widget* ruin_WidgetStack__GetTop(ruin_WidgetStack* stack) {
+    if (stack == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(ruin_WidgetStack__Get));
+        return NULL;
+    };
+    if (stack->top == 0 || stack->top > stack->capacity) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID TOP ACCESS ON %s\n", STR(ruin_WidgetStack__Get));
+        return NULL;
+    };
+    if (stack->items[stack->top - 1] == NULL ) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(ruin_WidgetStack__Get));
+        return NULL;
+    };
+    return stack->items[stack->top - 1];
+};
+
+internal ruin_Widget* ruin_WidgetStack__Push(ruin_WidgetStack* stack, ruin_Widget* element) {
+    if (stack == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(ruin_WidgetStack__Push));
+        return NULL;
+    };
+    if (stack->top >= stack->capacity) {
+        fprintf(stderr, "[RUIN_ERROR]: STACK CAPACITY EXCEEDED ON %s\n", STR(ruin_WidgetStack__Push));
+        return NULL;
+    };
+    stack->items[stack->top++] = element;
+    return stack->items[stack->top - 1];
+};
+
+internal ruin_Widget* ruin_WidgetStack__Pop(ruin_WidgetStack* stack) {
+    if (stack == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(ruin_WidgetStack__Pop));
+        return NULL;
+    };
+    if (stack->top == 0) {
+        fprintf(stderr, "[RUIN_ERROR]: STACK ALREADY EMPTY %s\n", STR(ruin_WidgetStack__Pop));
+        return NULL;
+    };
+    if (stack->items[stack->top - 1] == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(ruin_WidgetStack__Pop));
+        return NULL;
+    };
+    // printf("%u\n", stack->top);
+    return stack->items[--stack->top];
+};
+
+internal ruin_WidgetStack* ruin_WidgetStack__Init(Arena* arena) {
+    ruin_WidgetStack* res = (ruin_WidgetStack*)arena_alloc(arena, sizeof(ruin_WidgetStack));
+    res->top = 0;
+    res->capacity = 100;
+    if (arena == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID ARENA POINTER on %s\n", STR(ruin_WidgetStack__Init));
+        return res;
+    };
+    return res;
+};
+
+internal void ruin_WidgetStack__Clear(ruin_WidgetStack* stack) {
+    if (stack == NULL) {
+        fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(ruin_WidgetStack__Clear));
+        return;
+    };
+    stack->top = 0;
+};
+
 
 typedef struct {
     ruin_WidgetArray widgets; // caches -> list of all widgets in that current window, persisted across frames
     ruin_WindowArray windows;
-    // struct {
-    //     size_t index;
-    //     ruin_Window* items[WINDOW_ARRAY];      // caches -> list of all widgets in that current window, persisted across frames
-    // } windows;
     struct {
         size_t index;
         ruin_DrawCall items[DRAW_QUEUE_SIZE]; // emptied every frame
@@ -250,7 +361,7 @@ typedef struct {
     ruin_AxisStack     child_direction_stack;
     ruin_FontIDStack   font_stack;
 
-    ruin_WidgetStack parent_stack;
+    ruin_WidgetStack* parent_stack;
 } ruin_Context;
 
 ruin_Id hash_string(ruin_Context* ctx, const char* str);
