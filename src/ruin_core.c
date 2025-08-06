@@ -4,9 +4,6 @@
 
 #include "ruin_core.h"
 
-DEFINE_ARRAY(font_info, ruin_FontInfo);
-DEFINE_ARRAY(u32, U32);
-
 void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
    if (array->index >= array->capacity) return;
    array->items[array->index++] = *font;
@@ -146,7 +143,7 @@ ruin_Id hash_string(ruin_Context* ctx, const char* str) {
 };
 
 ruin_Context* create_ruin_context() {
-    const U32 ARENA_SIZE = 12288;
+    const U32 ARENA_SIZE = 42288;
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
@@ -162,12 +159,11 @@ ruin_Context* create_ruin_context() {
     MEM_ZERO(ctx, sizeof(ruin_Context));
     ctx->arena = arena;
     ctx->temp_arena = temp_arena;
-    ctx->widgets.index = 0;
     ctx->widgets = ruin_WidgetArray__Init(&arena, WIDGET_ARRAY);
-    // ctx->windows.index = 0;
+    ctx->windows = ruin_WindowArray__Init(&arena, WINDOW_ARRAY);
+
     ctx->parent_stack.top = -1;
 
-    // ctx->font_size = (ctx->font_size == 0) ? 14 : ctx->font_size;
     push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     push_color_stack(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     push_color_stack(&ctx->hover_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
@@ -178,22 +174,18 @@ ruin_Context* create_ruin_context() {
 
 ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_Id id) {
     for (size_t i = 0; i < ctx->windows.index; ++i) {
-        if (ctx->windows.items[i]->id == id)
-            return ctx->windows.items[i];
+        if (ruin_WindowArray__Get(&ctx->windows, i)->id == id)
+            return ruin_WindowArray__Get(&ctx->windows, i);
     };
 
     return NULL;
 };
 
 ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id) {
-    // printf("\n\n>>> capacity %i, ind: %i <<<\n", ctx->widgets.capacity, ctx->widgets.index);
     for (size_t i = 0; i < ctx->widgets.index; ++i) {
-        // printf(">>> %llu\n", ruin_WidgetArray__Get(&ctx->widgets, i)->id);
-        if (ruin_WidgetArray__Get(&ctx->widgets, i)->id == id) {
+        if (ruin_WidgetArray__Get(&ctx->widgets, i)->id == id)
             return ruin_WidgetArray__Get(&ctx->widgets, i); 
-        };
     };
-    // printf(">>> <<<\n");
 
     return NULL;
 };
@@ -253,15 +245,14 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     ruin_Window* window = get_window_by_id(ctx, id);
 
     if (window == NULL) {
-        window = (ruin_Window*)arena_alloc(&ctx->arena, sizeof(ruin_Window));
-        MEM_ZERO(window, sizeof(ruin_Window));
+        ruin_Window temp;
 
-        window->id = id;
-        window->title = title;
-        window->window_rect = rect;
-        window->window_flags = flags;
+        temp.id = id;
+        temp.title = title;
+        temp.window_rect = rect;
+        temp.window_flags = flags;
         
-        ctx->windows.items[ctx->windows.index++] = window;
+        window = ruin_WindowArray__Push(&ctx->windows, temp);
     };
     ctx->current_window = window;
 
@@ -289,12 +280,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         temp.flags |= RUIN_WIDGETFLAGS_DRAW_BORDER;
         temp.child_layout_axis = RUIN_AXISY;
 
-        temp.padding = (ruin_RectSide) {
-            .left = 20,
-            .right = 20,
-            .top = 20,
-            .bottom = 20,
-        };
+        temp.padding = (ruin_RectSide) { .left = 20, .right = 20, .top = 20, .bottom = 20 };
         root = ruin_WidgetArray__Push(&ctx->widgets, temp);
     };
     root->first_child = NULL;
@@ -539,7 +525,7 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
     ruin_WidgetStack* widget_stack2 = create_stack(temp_mem); // FOR POST ORDER ONLY
 
     for (size_t i = 0; i < ctx->windows.index; ++i) {
-        ruin_Widget* root = ctx->windows.items[i]->root_widget;
+        ruin_Widget* root = ruin_WindowArray__Get(&ctx->windows, i)->root_widget;
 
         compute__raw_sizes(ctx, widget_stack, root);
         compute__parent_depend_sizes(ctx, widget_stack, root);
