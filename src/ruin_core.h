@@ -1,6 +1,7 @@
 #ifndef RUIN_CORE 
 #define RUIN_CORE 
 
+#include <stdio.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,8 +36,8 @@ typedef enum   ruin_WidgetFlags {
 } ruin_WidgetFlags;
 typedef enum   ruin_WindowFlags { 
     RUIN_WINDOWFLAGS_DRAGABLE = (1<<0),
-    RUIN_WINDOWFLAGS_NOMENU = (1<<1),
-    RUIN_WINDOWFLAGS_NOTITLE = (1<<2) 
+    RUIN_WINDOWFLAGS_NOMENU   = (1<<1),
+    RUIN_WINDOWFLAGS_NOTITLE  = (1<<2) 
 }  ruin_WindowFlags;
 typedef enum   ruin_Axis      { 
     RUIN_AXISX,
@@ -185,15 +186,43 @@ static ruin_FontID *get_font_stack_top(ruin_FontIDStack *stack) { return (stack-
 static ruin_FontID *pop_font_stack(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
 static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->items[++stack->top] = item; };
 
+
+// CURENTLY PUSHABLE IS THE INDEX
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define DEFINE(type) typedef struct { U32 index; U32 capacity; type* items; } type##Array; \
+    internal type* type##Array__Get(type##Array* array, U32 index) { \
+        if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", STR(type##Array__Get)); return NULL; }; \
+        if (array->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY ITEMS POINTER ON %s\n", STR(type##Array__Get)); return NULL; }; \
+        if (index > array->index) { fprintf(stderr, "[RUIN_ERROR]: INVALID INDEX ACCESS ON %s\n", STR(type##Array__Get)); return NULL; }; \
+        return &array->items[index]; \
+    }; \
+    internal type* type##Array__Push(type##Array *array, type element) { \
+        if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", STR(type##Array__Push)); return NULL; }; \
+        if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", STR(type##Array__Push)); return NULL; }; \
+        if (array->index >= array->capacity) { fprintf(stderr, "[RUIN_ERROR]: ARRAY CAPACITY EXCEEDED ON %s\n", STR(type##Array__Push)); return NULL; }; \
+        array->items[array->index++] = element; \
+        return &array->items[array->index - 1];\
+    }; \
+    internal type##Array type##Array__Init(Arena* arena, U32 capacity) { \
+        type##Array res; res.index = 0; res.capacity = capacity;\
+        if (arena == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARENA POINTER on %s\n", STR(type##Array__Init)); return res; }; \
+        res.items = (type*)arena_alloc(arena, sizeof(type) * capacity); \
+        if (res.items == NULL) { fprintf(stderr, "[RUIN_ERROR]: UNABLE TO ALLOCATE %s -> items\n", STR(type##Array)); }; \
+        return res; \
+    }; \
+
+DEFINE(ruin_Widget);
+DEFINE(ruin_Window);
+
 typedef struct {
-    struct {
-        size_t index;
-        ruin_Widget* items[WIDGET_ARRAY];      // caches -> list of all widgets in that current window, persisted across frames
-    } widgets;
-    struct {
-        size_t index;
-        ruin_Window* items[WINDOW_ARRAY];      // caches -> list of all widgets in that current window, persisted across frames
-    } windows;
+    ruin_WidgetArray widgets; // caches -> list of all widgets in that current window, persisted across frames
+    ruin_WindowArray windows;
+    // struct {
+    //     size_t index;
+    //     ruin_Window* items[WINDOW_ARRAY];      // caches -> list of all widgets in that current window, persisted across frames
+    // } windows;
     struct {
         size_t index;
         ruin_DrawCall items[DRAW_QUEUE_SIZE]; // emptied every frame

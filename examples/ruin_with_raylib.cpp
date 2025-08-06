@@ -27,19 +27,14 @@ int main(void) {
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
 
-        ClearBackground(GRAY);
+        ClearBackground(WHITE);
+
+       //
+       // START HIERARCHY
+       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 300, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
 
-        //
-        // START HIERARCHY
-        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 300, }, RUIN_WINDOWFLAGS_DRAGABLE);
-
-
-
-       push_font_stack(&ctx->font_stack, jetbrains_20);
-       ruin_Label(ctx, "Image Editor");
-       pop_font_stack(&ctx->font_stack);
-
+       ruin_Label(ctx, "iiimage Editor");
        ruin_SameLine(ctx, "grain_group") {
            ruin_Label(ctx, "grain");
            ruin_SpacerFillX(ctx);
@@ -48,13 +43,12 @@ int main(void) {
        ruin_SameLine(ctx, "grain_group2") {
            ruin_Label(ctx, "grain");
            ruin_SpacerFillX(ctx);
-           ruin_Button(ctx, "click connect");
+           ruin_Button(ctx, "xx");
        };
+
+
+
        
-
-
-
-
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY

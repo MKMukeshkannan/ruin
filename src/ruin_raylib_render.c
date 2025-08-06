@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include "stdlib.h"
 
-
 typedef struct {
     String8 font_name;
     Texture2D textures[128];

@@ -14,7 +14,6 @@ void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
 
 ruin_FontInfo* get_current_active_font(ruin_Context* ctx) {
     ruin_FontID* id = get_font_stack_top(&ctx->font_stack) - 1;
-    printf("%lu\n", *id);
     String8 name = ctx->fonts->items[*id].font_name;
     if (name.data == NULL) {
         printf("empty stack\n");
@@ -25,10 +24,9 @@ ruin_FontInfo* get_current_active_font(ruin_Context* ctx) {
     for (int i = 0; i < font_array->index; ++i) {
         if (str_equal(name, font_array->items[i].font_name)) {
             return &font_array->items[i];
-        }
+        };
     };
 
-    printf("cannot find requedsted font\n");
     return NULL;
 };
 
@@ -165,7 +163,8 @@ ruin_Context* create_ruin_context() {
     ctx->arena = arena;
     ctx->temp_arena = temp_arena;
     ctx->widgets.index = 0;
-    ctx->windows.index = 0;
+    ctx->widgets = ruin_WidgetArray__Init(&arena, WIDGET_ARRAY);
+    // ctx->windows.index = 0;
     ctx->parent_stack.top = -1;
 
     // ctx->font_size = (ctx->font_size == 0) ? 14 : ctx->font_size;
@@ -187,33 +186,23 @@ ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_Id id) {
 };
 
 ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id) {
+    // printf("\n\n>>> capacity %i, ind: %i <<<\n", ctx->widgets.capacity, ctx->widgets.index);
     for (size_t i = 0; i < ctx->widgets.index; ++i) {
-        if (ctx->widgets.items[i]->id == id) 
-            return ctx->widgets.items[i]; 
+        // printf(">>> %llu\n", ruin_WidgetArray__Get(&ctx->widgets, i)->id);
+        if (ruin_WidgetArray__Get(&ctx->widgets, i)->id == id) {
+            return ruin_WidgetArray__Get(&ctx->widgets, i); 
+        };
     };
+    // printf(">>> <<<\n");
 
     return NULL;
 };
 
 internal String8 id_seperator = String8("##");
 ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_Id id, ruin_WidgetOptions opt) {
-
-    ruin_Widget* widget = (id != RUIN_TRANSIENT_ID)
-        ? (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget))
-        : (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
-
-    if (id != RUIN_TRANSIENT_ID) ctx->widgets.items[ctx->widgets.index++] = widget; // PUSHES INTO THE CACEH
-
+    ruin_Widget* widget = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
 
     if (id != RUIN_TRANSIENT_ID) {
-        String8 str_name = str_from_cstr(full_name, &ctx->arena);
-        String8 str_display = str_name;
-
-        size_t ind;
-        if ((ind = str_index_of(str_name, id_seperator)) != (size_t)-1) str_display = str_substring(str_display, 0, ind, &ctx->arena);
-
-        widget->display_text = str_display;
-        widget->widget_name  = str_name;
     }
     
     widget->id = id;
@@ -221,7 +210,6 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
 
     widget->child_layout_axis = *get_axis_stack_top(&ctx->child_direction_stack);
     widget->padding = *get_rectsides_stack_top(&ctx->padding_stack);
-
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_TEXT) {
         widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
@@ -244,6 +232,17 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
         // widget->size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_CHILDRENSUM, .value = 0, .strictness = 1, };
     };
 
+    if (id != RUIN_TRANSIENT_ID) {
+        String8 str_name = str_from_cstr(full_name, &ctx->arena);
+        String8 str_display = str_name;
+
+        size_t ind;
+        if ((ind = str_index_of(str_name, id_seperator)) != (size_t)-1) str_display = str_substring(str_display, 0, ind, &ctx->arena);
+
+        widget->display_text = str_display;
+        widget->widget_name  = str_name;
+        widget = ruin_WidgetArray__Push(&ctx->widgets, *widget);
+    };
     return widget;
 };
 
@@ -252,7 +251,6 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
 void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin_WindowFlags flags) {
     ruin_Id id = hash_string(ctx, title);
     ruin_Window* window = get_window_by_id(ctx, id);
-
 
     if (window == NULL) {
         window = (ruin_Window*)arena_alloc(&ctx->arena, sizeof(ruin_Window));
@@ -267,41 +265,37 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     };
     ctx->current_window = window;
 
-
     ruin_Id root_id = hash_string(ctx, "root##default");
     ruin_Widget* root = get_widget_by_id(ctx, root_id);
     if (root == NULL) {
-        root = (ruin_Widget*)arena_alloc(&ctx->arena, sizeof(ruin_Widget));
-        MEM_ZERO(root, sizeof(ruin_Widget));
+        ruin_Widget temp;
+        temp.id = root_id;
+        temp.parent = NULL;
+        temp.size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
+        temp.size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
+        temp.child_count = 0;
 
-        root->id = root_id;
-        root->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.w, .strictness=1 }; ;
-        root->size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_PIXEL, .value = ctx->current_window->window_rect.h, .strictness=1 }; ;
-        root->display_text = String8("root");
-        root->child_count = 0;
+        temp.draw_coords.bbox.x = ctx->current_window->window_rect.x;
+        temp.draw_coords.bbox.y = ctx->current_window->window_rect.y;
+        temp.draw_coords.bbox.h = ctx->current_window->window_rect.y + temp.size[RUIN_AXISY].value;
+        temp.draw_coords.bbox.w = ctx->current_window->window_rect.x + temp.size[RUIN_AXISX].value;
 
-        root->draw_coords.bbox.x = ctx->current_window->window_rect.x;
-        root->draw_coords.bbox.y = ctx->current_window->window_rect.y;
-        root->draw_coords.bbox.h = ctx->current_window->window_rect.y + root->size[RUIN_AXISY].value;
-        root->draw_coords.bbox.w = ctx->current_window->window_rect.x + root->size[RUIN_AXISX].value;
+        temp.draw_coords.text_pos.x = temp.draw_coords.bbox.x;
+        temp.draw_coords.text_pos.y = temp.draw_coords.bbox.y;
 
-        root->draw_coords.text_pos.x = root->draw_coords.bbox.x;
-        root->draw_coords.text_pos.y = root->draw_coords.bbox.y;
+        temp.partially_offset.x = 0;
+        temp.partially_offset.y = 0;
 
-        root->partially_offset.x = 0;
-        root->partially_offset.y = 0;
+        temp.flags |= RUIN_WIDGETFLAGS_DRAW_BORDER;
+        temp.child_layout_axis = RUIN_AXISY;
 
-        root->flags |= RUIN_WIDGETFLAGS_DRAW_BORDER;
-        root->child_layout_axis = RUIN_AXISY;
-
-        root->padding = (ruin_RectSide) {
+        temp.padding = (ruin_RectSide) {
             .left = 20,
             .right = 20,
             .top = 20,
             .bottom = 20,
         };
-
-        ctx->widgets.items[ctx->widgets.index++] = root;
+        root = ruin_WidgetArray__Push(&ctx->widgets, temp);
     };
     root->first_child = NULL;
     window->root_widget = root;
@@ -316,8 +310,8 @@ void ruin_EndWindow(ruin_Context* ctx) {
 
 internal void compute__raw_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_stack, ruin_Widget* root) {
     push(widget_stack, root);
+    // printf("pushing stack:%s\n", widget_stack->items[widget_stack->top]->display_text.data);
     while (!is_stack_empty(widget_stack)) {
-
         ruin_Widget* current_top = pop(widget_stack);
 
         if (current_top->parent != NULL) {
@@ -383,18 +377,21 @@ internal void compute__child_depend_sizes(ruin_Context* ctx, ruin_WidgetStack* s
             float x_padding = widget->padding.left + widget->padding.right;
             float y_padding = widget->padding.top + widget->padding.bottom;
 
-
             childsum_x += widget->fixed_size.x + x_padding;
             childsum_y += widget->fixed_size.y + y_padding;
             childmax_x = MAX(childmax_x, widget->fixed_size.x + x_padding);
             childmax_y = MAX(childmax_y, widget->fixed_size.y + y_padding);
         };
 
+        // printf("name:%u child:%i\n", curr->child_count, childmax_x);
+
         // TODO: ::layout:: if the flow direction is Y AXIS, then height of widget must be summed instead of width;
-        if (curr->size[RUIN_AXISX].kind == RUIN_SIZEKIND_CHILDRENSUM) 
+        if (curr->size[RUIN_AXISX].kind == RUIN_SIZEKIND_CHILDRENSUM) {
             curr->fixed_size.x = childsum_x;
-        if (curr->size[RUIN_AXISY].kind == RUIN_SIZEKIND_CHILDRENSUM) 
+        };
+        if (curr->size[RUIN_AXISY].kind == RUIN_SIZEKIND_CHILDRENSUM) {
             curr->fixed_size.y = childmax_y;
+        }
     }
 
     clear_stack(stack_1);
@@ -487,6 +484,9 @@ internal void compute__draw_coordinates(ruin_Context* ctx, ruin_WidgetStack* wid
         };
 
         ruin_Rect rect = current_top->draw_coords.bbox;
+
+        // DEBUGPRINT
+        // printf("frame:%llu - name:%s \n\tx:%f y:%f w:%f h:%f \n\tww:%f hh:%f\n\tfx:%f fy:%f\n", ctx->frame, current_top->widget_name.data, rect.x, rect.y, rect.w, rect.h, rect.w - rect.x, rect.h - rect.y, current_top->fixed_size.x, current_top->fixed_size.y);
     };
 
     widget_stack->top = -1;
@@ -537,7 +537,6 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
     Temp_Arena_Memory temp_mem = temp_arena_memory_begin(&ctx->arena);
     ruin_WidgetStack* widget_stack = create_stack(temp_mem);
     ruin_WidgetStack* widget_stack2 = create_stack(temp_mem); // FOR POST ORDER ONLY
-
 
     for (size_t i = 0; i < ctx->windows.index; ++i) {
         ruin_Widget* root = ctx->windows.items[i]->root_widget;
