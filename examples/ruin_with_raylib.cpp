@@ -16,28 +16,32 @@ int main(void) {
 
     ruin_Context* ctx = create_ruin_context();
 
-    ruin_SetFontCount(ctx, 2);
-    ruin_FontID jetbrains_20 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_20", 20);
+    ruin_SetFontCount(ctx, 3);
+    ruin_FontID jetbrains_20 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_20", 16);
     ruin_FontID jetbrains_24 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_24", 24);
+    ruin_FontID inter_24 = ruin_LoadFont(ctx, "resources/inter.ttf", "INTER_24", 24);
 
     ruin_RaylibInit(ctx);
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
-
-
-
         Vector2 m_pos = GetMousePosition();
         ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
-
         ClearBackground(WHITE);
 
        //
        // START HIERARCHY
        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 300, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
+       ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
+       ruin_Label(ctx, "Image Editor");
+       ruin_Label(ctx, "Editor");
+       ruin_Label(ctx, "Image");
+       ruin_Label(ctx, "ImageEditor");
+       ruin_FontIDStack__Pop(&ctx->font_stack);
 
-       ruin_Label(ctx, "iiimage Editor");
+
+
        ruin_SameLine(ctx, "grain_group") {
            ruin_Label(ctx, "grain");
            ruin_SpacerFillX(ctx);

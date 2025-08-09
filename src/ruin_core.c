@@ -9,28 +9,10 @@ void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
    array->items[array->index++] = *font;
 };
 
-// ruin_FontInfo* get_current_active_font(ruin_Context* ctx) {
-//     ruin_FontID* id = get_font_stack_top(&ctx->font_stack) - 1;
-//     String8 name = ctx->fonts->items[*id].font_name;
-//     if (name.data == NULL) {
-//         printf("empty stack\n");
-//         return NULL;
-//     };
-// 
-//     ruin_FontInfoArray* font_array = ctx->fonts;
-//     for (int i = 0; i < font_array->index; ++i) {
-//         if (str_equal(name, font_array->items[i].font_name)) {
-//             return &font_array->items[i];
-//         };
-//     };
-// 
-//     return NULL;
-// };
-
-internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
+internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string, ruin_FontID font_id) {
     F32 width = 0;
     for (int i = 0; i < string.len; ++i)
-        width += (ruin_FontInfoArray__Get(&ctx->fonts, 0)->bitmap[string.data[i]].advance >> 6); 
+        width += (ruin_FontInfoArray__Get(&ctx->fonts, font_id)->bitmap[string.data[i]].advance >> 6); 
 
     return width;
 };
@@ -90,11 +72,15 @@ ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name,
     };
 
     ruin_FontInfoArray__Push(&ctx->fonts, font);
+
+    if (ruin_FontIDStack__IsEmpty(&ctx->font_stack)) {
+        ruin_FontIDStack__Push(&ctx->font_stack, ctx->fonts.index - 1);
+    };
  
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
-    return (ctx->fonts.index);
+    return (ctx->fonts.index - 1);
 };
 
 void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget) {
@@ -162,10 +148,11 @@ ruin_Context* create_ruin_context() {
     ctx->foreground_color_stack = ruin_ColorStack__Init(&ctx->arena, 4);
     ctx->hover_color_stack = ruin_ColorStack__Init(&ctx->arena, 4);
 
-    ctx->font_stack = ruin_FontInfoStack__Init(&ctx->arena, 2);
+    ctx->font_stack = ruin_FontIDStack__Init(&ctx->arena, 4);
     ctx->child_direction_stack = ruin_AxisStack__Init(&ctx->arena, 4);
     ctx->padding_stack = ruin_RectSideStack__Init(&ctx->arena, 4);
 
+    // SETTING UP DEFAULT STYLING
     ruin_ColorStack__Push(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     ruin_ColorStack__Push(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
     ruin_ColorStack__Push(&ctx->hover_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
@@ -209,6 +196,7 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
     widget->padding = *ruin_RectSideStack__GetTop(&ctx->padding_stack);
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_TEXT) {
+        widget->font = *ruin_FontIDStack__GetTop(&ctx->font_stack);
         widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
         widget->size[RUIN_AXISY] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
     };
@@ -316,10 +304,10 @@ internal void compute__raw_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_sta
             current_top->fixed_size.y = current_top->size[RUIN_AXISY].value;
 
         if (current_top->size[RUIN_AXISX].kind == RUIN_SIZEKIND_TEXTCONTENT) 
-            current_top->fixed_size.x = ruin_GetWidth(ctx, current_top->display_text);
+            current_top->fixed_size.x = ruin_GetWidth(ctx, current_top->display_text, current_top->font);
 
         if (current_top->size[RUIN_AXISY].kind == RUIN_SIZEKIND_TEXTCONTENT) 
-            current_top->fixed_size.y = (F32)ruin_FontInfoArray__Get(&ctx->fonts, 0)->bitmap[0].height / 64;
+            current_top->fixed_size.y = (F32)ruin_FontInfoArray__Get(&ctx->fonts, current_top->font)->bitmap[0].height / 64;
 
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
             ruin_WidgetStack__Push(widget_stack, widget);
@@ -507,7 +495,8 @@ internal void generate__draw_calls(ruin_Context* ctx, ruin_WidgetStack* widget_s
                 .draw_info_union = {
                     .draw_text = {
                         .text = current_top->display_text.data,
-                        .pos = {.x = text_pos.x, .y = text_pos.y}
+                        .pos = {.x = text_pos.x, .y = text_pos.y},
+                        .font_id = current_top->font
                     }
                 }
             };

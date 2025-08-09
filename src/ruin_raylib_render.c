@@ -41,21 +41,20 @@ void ruin_RaylibInit(ruin_Context* ctx) {
 };
 
 #ifdef USE_FREETYPE
-void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y, float scale, ruin_Color color) {
-    ruin_FontInfoArray* fonts = &ctx->fonts;
+void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y, float scale, ruin_Color color, ruin_FontID font_id) {
+    ruin_FontInfo* font = ruin_FontInfoArray__Get(&ctx->fonts, font_id);
     ruin_Bitmap current_char;
     size_t i = 0;
     
-    // TODO: ::font:: make it variable for all font sizes
-    y += fonts->items[0].font_size;
+    y += font->font_size;
     while (string[i] != '\0') {
-         current_char = fonts->items[0].bitmap[string[i]];
+         current_char = font->bitmap[string[i]];
          float xpos = x + current_char.bearingX * scale;
          float ypos = y - current_char.bearingY * scale;
          float w    = current_char.width * scale;
          float h    = current_char.rows * scale;
 
-          DrawTexturePro(g_raylib_font_textures.items[0].textures[string[i]], 
+           DrawTexturePro(FontTexturesArray__Get(&g_raylib_font_textures, font_id)->textures[string[i]], 
                          (Rectangle) {.x=0, .y=0, .width=(float)current_char.width, .height=(float)current_char.rows}, 
                          (Rectangle) {.x=xpos, .y=ypos, .width=w, .height=h}, 
                          (Vector2){}, 
@@ -85,7 +84,7 @@ void ruin_RaylibRender(ruin_Context* ctx) {
                ruin_Vec2 pos = ctx->draw_queue.items[i].draw_info_union.draw_text.pos;
              #ifdef USE_FREETYPE
                 if (ctx->draw_queue.items[i].draw_info_union.draw_text.text != NULL)
-                    ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
+                    ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {}, ctx->draw_queue.items[i].draw_info_union.draw_text.font_id);
              #else
                DrawText(ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 16, BLACK);
              #endif

@@ -18,6 +18,7 @@ extern "C" {
 // HEADER MESS
 #define ruin_WidgetOptions U32
 
+typedef size_t ruin_FontID;
 typedef U64    ruin_Id; 
 typedef enum   ruin_SizeKind    { 
     RUIN_SIZEKIND_PIXEL,
@@ -81,7 +82,7 @@ typedef struct ruin_DrawCall {
     union {
         struct ruin_DrawRect { ruin_Rect rect; ruin_Color color; U8 border_width; } draw_rect;
         struct ruin_DrawClip { ruin_Rect rect; } draw_clip;
-        struct ruin_DrawText { const char* text; ruin_Vec2 pos; } draw_text;
+        struct ruin_DrawText { const char* text; ruin_Vec2 pos; ruin_FontID font_id; } draw_text;
     } draw_info_union;
 } ruin_DrawCall;
 
@@ -110,11 +111,12 @@ struct ruin_Widget {
 
     ruin_Axis child_layout_axis;
 
-    ruin_Color background_color;
-    ruin_Color foreground_color;
-    ruin_Color hover_color;
-    ruin_Color active_color;
-    ruin_Color border_color;
+    ruin_Color  background_color;
+    ruin_Color  foreground_color;
+    ruin_Color  hover_color;
+    ruin_Color  active_color;
+    ruin_Color  border_color;
+    ruin_FontID font;
     U32 child_count;
 };
 
@@ -135,7 +137,6 @@ struct ruin_Window {
     ruin_Id id;
 };
 
-typedef size_t ruin_FontID;
 
 /* STUFF BELOW ARE GENEATED WITH MACROS
 *
@@ -222,7 +223,7 @@ typedef size_t ruin_FontID;
     internal type* type##Stack__Push(type##Stack *stack, type element) { \
         if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__Push)); return NULL; }; \
         if (stack->items == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__Push)); return NULL; }; \
-        if (stack->top >= stack->capacity) { fprintf(stderr, "[RUIN_ERROR]: STACK CAPACITY EXCEEDED ON %s\n", STR(type##Stack__Push)); return NULL; }; \
+        if (stack->top >= stack->capacity) { fprintf(stderr, "[RUIN_ERROR]: STACK CAPACITY EXCEEDED ON %s, top:%u cap:%u\n", STR(type##Stack__Push), stack->top, stack->capacity); return NULL; }; \
         stack->items[stack->top++] = element; \
         return &stack->items[stack->top - 1];\
     }; \
@@ -230,7 +231,7 @@ typedef size_t ruin_FontID;
         if (stack == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(type##Stack__Pop)); return NULL; }; \
         if (stack->items == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(type##Stack__Pop)); return NULL; }; \
         if (stack->top == 0) { fprintf(stderr, "[RUIN_ERROR]: STACK ALREADY EMPTY %s\n", STR(type##Stack__Pop)); return NULL; }; \
-        return &stack->items[stack->top - 1];\
+        return &stack->items[stack->top--];\
     };\
     internal type##Stack type##Stack__Init(Arena* arena, U32 capacity) { \
         type##Stack res; res.top = 0; res.capacity = capacity;\
@@ -252,7 +253,8 @@ DEFINE_ARRAY_CACHES(ruin_FontInfo);
 DEFINE_STACKS(ruin_Color);
 DEFINE_STACKS(ruin_Axis);
 DEFINE_STACKS(ruin_RectSide);
-DEFINE_STACKS(ruin_FontInfo);
+DEFINE_STACKS(ruin_FontID);
+// DEFINE_STACKS(ruin_FontInfo);
 
 // DEFINE_STACKS(ruin_Widget);
 typedef struct {
@@ -361,7 +363,7 @@ typedef struct {
     ruin_ColorStack    active_color_stack;
     ruin_RectSideStack padding_stack; 
     ruin_AxisStack     child_direction_stack;
-    ruin_FontInfoStack font_stack;
+    ruin_FontIDStack   font_stack;
 
     ruin_WidgetStack* parent_stack;
 } ruin_Context;
