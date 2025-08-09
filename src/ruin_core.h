@@ -27,6 +27,12 @@ typedef enum   ruin_SizeKind    {
     RUIN_SIZEKIND_CHILDRENSUM,
     RUIN_SIZEKIND_GROW 
 } ruin_SizeKind;
+typedef enum ruin_MouseButtonClickType { 
+    RUIN_MOUSE_BUTTON_CLICK_LEFT             = (1<<0),
+    RUIN_MOUSE_BUTTON_CLICK_MIDDLE           = (1<<1),
+    RUIN_MOUSE_BUTTON_CLICK_RIGHT            = (1<<2),
+} ruin_MouseButtonClickType;
+#define ruin_MouseButtonClick U8 
 typedef enum   ruin_WidgetFlags { 
     RUIN_WIDGETFLAGS_NO_FLAGS         =  (1<<0),
     RUIN_WIDGETFLAGS_DRAW_BACKGROUND  =  (1<<1),
@@ -120,14 +126,6 @@ struct ruin_Widget {
     U32 child_count;
 };
 
-// typedef struct { S16 top; ruin_Widget* items[100]; } ruin_WidgetStack;
-// internal ruin_WidgetStack* create_stack(Temp_Arena_Memory temp) { ruin_WidgetStack* stack = (ruin_WidgetStack*)arena_alloc(temp.arena, sizeof(ruin_WidgetStack)); MEM_ZERO(stack, sizeof(ruin_WidgetStack)); stack->top = -1; return stack; };
-// internal ruin_Widget* get_top(ruin_WidgetStack* stack) { if (stack->top == -1) { return NULL; }; return stack->items[stack->top]; };
-// internal ruin_Widget* pop(ruin_WidgetStack* stack) { if (stack->top == -1) return NULL; return stack->items[stack->top--]; };
-// internal void push(ruin_WidgetStack* stack, ruin_Widget* widget) { stack->items[++stack->top] = widget; };
-// internal bool is_stack_empty(ruin_WidgetStack* stack) { return (stack->top == -1); };
-// internal void clear_stack(ruin_WidgetStack* stack) {stack->top = -1;};
-
 typedef struct ruin_Window ruin_Window;
 struct ruin_Window {
     ruin_Rect window_rect;
@@ -136,50 +134,6 @@ struct ruin_Window {
     char window_flags;
     ruin_Id id;
 };
-
-
-/* STUFF BELOW ARE GENEATED WITH MACROS
-*
-* DECLARE_STACK(color, ruin_Color);
-* DECLARE_STACK(axis, ruin_Axis);
-* DECLARE_STACK(rectsides, ruin_RectSide);
-* DECLARE_STACK(font, ruin_FontID);
-*/
-// typedef struct {
-//   S16 top;
-//   ruin_Color items[4];
-// } ruin_ColorStack;
-// static bool is_color_stack_empty(ruin_ColorStack *stack) { return (stack->top == -1); };
-// static ruin_Color *get_color_stack_top(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-// static ruin_Color *pop_color_stack(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-// static void push_color_stack(ruin_ColorStack *stack, ruin_Color item) { stack->items[++stack->top] = item; };
-// 
-// typedef struct {
-//   S16 top;
-//   ruin_Axis items[4];
-// } ruin_AxisStack;
-// static _Bool is_axis_stack_empty(ruin_AxisStack *stack) { return (stack->top == -1); };
-// static ruin_Axis *get_axis_stack_top(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-// static ruin_Axis *pop_axis_stack(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-// static void push_axis_stack(ruin_AxisStack *stack, ruin_Axis item) { stack->items[++stack->top] = item; };
-// 
-// typedef struct {
-//   S16 top;
-//   ruin_RectSide items[4];
-// } ruin_RectSideStack;
-// static _Bool is_rectsides_stack_empty(ruin_RectSideStack *stack) { return (stack->top == -1); };
-// static ruin_RectSide *get_rectsides_stack_top(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-// static ruin_RectSide *pop_rectsides_stack(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-// static void push_rectsides_stack(ruin_RectSideStack *stack, ruin_RectSide item) { stack->items[++stack->top] = item; };
-// 
-// typedef struct {
-//   S16 top;
-//   ruin_FontID items[4];
-// } ruin_FontIDStack;
-// static _Bool is_font_stack_empty(ruin_FontIDStack *stack) { return (stack->top == -1); };
-// static ruin_FontID *get_font_stack_top(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-// static ruin_FontID *pop_font_stack(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-// static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->items[++stack->top] = item; };
 
 
 // CURENTLY PUSHABLE IS THE INDEX
@@ -351,7 +305,9 @@ typedef struct {
                        
     ruin_Window* current_window;
 
+    // USED FOR INTERACTIVITY
     ruin_Vec2 mouse_position;
+    ruin_MouseButtonClick mouse_action;
     ruin_Id hot;
     ruin_Id active;
     U64 frame;
@@ -380,7 +336,7 @@ ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id);
 void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin_WindowFlags flags);
 void ruin_EndWindow(ruin_Context* ctx);
 void ruin_ComputeLayout(ruin_Context* ctx);
-void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget);
+void ruin_PushWidgetNArray(ruin_Widget* root_widget, ruin_Widget* new_widget);
 
 
 #ifdef __cplusplus

@@ -11,6 +11,7 @@ void ruin_RowBegin(ruin_Context* ctx, const char* label) {
     ruin_Widget* row_warpper = get_widget_by_id(ctx, id);
     if (row_warpper == NULL) {
         row_warpper = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_NO_FLAGS);
+        // row_warpper->background_color = (ruin_Color) { .r = 255, .g = 255, .b = 0, .a = 255};
         row_warpper->child_layout_axis = RUIN_AXISX;
         row_warpper->size[RUIN_AXISY] = (ruin_Size) {
             .kind = RUIN_SIZEKIND_CHILDRENSUM,
@@ -24,7 +25,7 @@ void ruin_RowBegin(ruin_Context* ctx, const char* label) {
         };
     };
 
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), row_warpper);
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), row_warpper);
     ruin_WidgetStack__Push(ctx->parent_stack, row_warpper);
 };
 void ruin_RowEnd(ruin_Context* ctx) { 
@@ -35,11 +36,9 @@ B8 ruin_Label(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(ctx, label);
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) {
-        // push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=255, .b=0, .g=0, .a=255});
         label_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND);
-        // pop_color_stack(&ctx->background_color_stack);
     };
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), label_widget);
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), label_widget);
 
     return false;
 };
@@ -48,44 +47,44 @@ void ruin_SpacerFillX(ruin_Context* ctx) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
-        spacer = ruin_create_widget_ex(ctx, "", id, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
         spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_GROW, .value = 0, .strictness = 1 };
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 0, .strictness = 1 };
     };
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
 };
 
 void ruin_SpacerFixedX(ruin_Context* ctx, F32 space) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
-        spacer = ruin_create_widget_ex(ctx, "", id, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
         spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = space, .strictness = 1 };
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
     };
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
 };
 
 void ruin_SpacerFillY(ruin_Context* ctx) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
-        spacer = ruin_create_widget_ex(ctx, "", id, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
         spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 0, .strictness = 1 };
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_GROW, .value = 0, .strictness = 1 };
     };
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
 };
 
 void ruin_SpacerFixedY(ruin_Context* ctx, F32 space) {
     ruin_Id id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
-        spacer = ruin_create_widget_ex(ctx, "", id, RUIN_WIDGETFLAGS_NO_FLAGS);
+        spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
         spacer->size[RUIN_AXISX] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = 1, .strictness = 1 };
         spacer->size[RUIN_AXISY] = (ruin_Size) { .kind=RUIN_SIZEKIND_PIXEL, .value = space, .strictness = 1 };
     };
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), spacer);
 };
 
 
@@ -93,20 +92,21 @@ B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(ctx, label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
     if (button_widget == NULL) {
-        // ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, });
         button_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
-        // ruin_RectSideStack__Pop(&ctx->padding_stack);
+        button_widget->background_color = (ruin_Color) {  .r = 255, .g = 0, .b = 0, .a = 255 };
+        button_widget->padding = (ruin_RectSide) { .left = 16, .right = 16, .top = 4, .bottom = 4, };
     }
+    ruin_PushWidgetNArray(ruin_WidgetStack__GetTop(ctx->parent_stack), button_widget);
 
     ruin_Rect rect = button_widget->draw_coords.bbox;
     ruin_Vec2 mouse_position = ctx->mouse_position;
-    if (hovered(rect, mouse_position)) {
-        button_widget->background_color = *ruin_ColorStack__GetTop(&ctx->active_color_stack);
+    bool is_hovered = hovered(rect, mouse_position);
+    if (!is_hovered) {
+        button_widget->background_color = (ruin_Color) {  .r = 255, .g = 0, .b = 0, .a = 255 };
     } else {
-        button_widget->background_color = *ruin_ColorStack__GetTop(&ctx->background_color_stack);
+        button_widget->background_color = (ruin_Color) {  .r = 255, .g = 250, .b = 0, .a = 255 };
     };
 
-    push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), button_widget);
-    return false;
+    return (is_hovered&ctx->mouse_action);
 };
 

@@ -25,9 +25,17 @@ int main(void) {
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
-        Vector2 m_pos = GetMousePosition();
-        ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
-        ClearBackground(WHITE);
+       Vector2 m_pos = GetMousePosition();
+       ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
+       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_LEFT;
+       };
+       if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_LEFT;
+       };
+       printf("click: %u\n", ctx->mouse_action);
+       ClearBackground(WHITE);
+
 
        //
        // START HIERARCHY
@@ -35,27 +43,21 @@ int main(void) {
 
        ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
        ruin_Label(ctx, "Image Editor");
-       ruin_Label(ctx, "Editor");
-       ruin_Label(ctx, "Image");
-       ruin_Label(ctx, "ImageEditor");
        ruin_FontIDStack__Pop(&ctx->font_stack);
-
 
 
        ruin_SameLine(ctx, "grain_group") {
            ruin_Label(ctx, "grain");
            ruin_SpacerFillX(ctx);
-           ruin_Button(ctx, "20");
+           if (ruin_Button(ctx, "20")) {
+               printf("helo\n");
+           };
        };
        ruin_SameLine(ctx, "grain_group2") {
            ruin_Label(ctx, "grain");
            ruin_SpacerFillX(ctx);
-           ruin_Button(ctx, "xx");
+           ruin_Button(ctx, "70");
        };
-
-
-
-       
 
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY

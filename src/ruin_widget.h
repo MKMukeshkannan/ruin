@@ -15,6 +15,7 @@ void ruin_RowEnd(ruin_Context* ctx);
 B8 ruin_Label(ruin_Context* ctx, const char* label);
 B8 ruin_Button(ruin_Context* ctx, const char* label);
 
+// TRANSIENT - stateless
 void ruin_SpacerFillX(ruin_Context* ctx);
 void ruin_SpacerFixedX(ruin_Context* ctx, F32 space);
 void ruin_SpacerFillY(ruin_Context* ctx);
