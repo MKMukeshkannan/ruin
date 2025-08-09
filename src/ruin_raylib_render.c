@@ -8,7 +8,7 @@
 #include "stdlib.h"
 
 typedef struct {
-    String8 font_name;
+    ruin_FontID font_id;
     Texture2D textures[128];
 } FontTextures;
 DEFINE_ARRAY_CACHES(FontTextures);
@@ -17,27 +17,27 @@ static FontTexturesArray g_raylib_font_textures;
 
 void ruin_RaylibInit(ruin_Context* ctx) {
     ruin_FontInfoArray* fonts = &ctx->fonts;
-    g_raylib_font_textures = FontTexturesArray__Init(&ctx->arena, 1);
+    g_raylib_font_textures = FontTexturesArray__Init(&ctx->arena, fonts->capacity);
 
-   for (int i = 0; i < fonts->index; ++i) {
-       Image img = {0};
-       for (int c = 0; c < 128; ++c) {
-            ruin_Bitmap* bmp = &fonts->items[i].bitmap[c];
+    for (size_t font_idx = 0; font_idx < fonts->index; ++font_idx) {
+        ruin_Bitmap *bitmap = ruin_FontInfoArray__Get(fonts, font_idx)->bitmap;
+        Image img; 
+        FontTextures raylib_single_font_textures;
+        for (size_t c = 0; c < 128; ++c) {
 
-            img.width = bmp->width;
-            img.height = bmp->rows;
-            img.format = PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA;
+            img.data = bitmap[c].buffer;
+            img.width = bitmap[c].width;
+            img.height = bitmap[c].rows;
             img.mipmaps = 1;
+            img.format = PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA;
 
-            img.data = bmp->buffer;
-    
-            Texture2D tex = LoadTextureFromImage(img);
-            UnloadImage(img); 
+            raylib_single_font_textures.textures[c] = LoadTextureFromImage(img);
+        };
+        raylib_single_font_textures.font_id = font_idx;
+        FontTexturesArray__Push(&g_raylib_font_textures, raylib_single_font_textures);
+        UnloadImage(img);
+    };
 
-           g_raylib_font_textures.items[i].font_name = fonts->items[i].font_name;
-           g_raylib_font_textures.items[i].textures[c] = tex;
-       };
-   };
 };
 
 #ifdef USE_FREETYPE
@@ -49,21 +49,21 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
     // TODO: ::font:: make it variable for all font sizes
     y += fonts->items[0].font_size;
     while (string[i] != '\0') {
-        current_char = fonts->items[0].bitmap[string[i]];
-        float xpos = x + current_char.bearingX * scale;
-        float ypos = y - current_char.bearingY * scale;
-        float w    = current_char.width * scale;
-        float h    = current_char.rows * scale;
+         current_char = fonts->items[0].bitmap[string[i]];
+         float xpos = x + current_char.bearingX * scale;
+         float ypos = y - current_char.bearingY * scale;
+         float w    = current_char.width * scale;
+         float h    = current_char.rows * scale;
 
-        DrawTexturePro(g_raylib_font_textures.items[0].textures[string[i]], 
-                       (Rectangle) {.x=0, .y=0, .width=(float)current_char.width, .height=(float)current_char.rows}, 
-                       (Rectangle) {.x=xpos, .y=ypos, .width=w, .height=h}, 
-                       (Vector2){}, 
-                       0.0f, 
-                       BLACK);
+          DrawTexturePro(g_raylib_font_textures.items[0].textures[string[i]], 
+                         (Rectangle) {.x=0, .y=0, .width=(float)current_char.width, .height=(float)current_char.rows}, 
+                         (Rectangle) {.x=xpos, .y=ypos, .width=w, .height=h}, 
+                         (Vector2){}, 
+                         0.0f, 
+                         BLACK);
 
-        x += (current_char.advance >> 6) * scale;
-        ++i;
+         x += (current_char.advance >> 6) * scale;
+         ++i;
     };
 };
 #endif
@@ -71,7 +71,6 @@ void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y
 void ruin_RaylibRender(ruin_Context* ctx) {
 
    BeginDrawing();
-   // ruin_CharInfo* char_info = ctx->font;
 
    for (int i = 0; i < ctx->draw_queue.index; ++i) {
        switch (ctx->draw_queue.items[i].type) {
@@ -85,7 +84,8 @@ void ruin_RaylibRender(ruin_Context* ctx) {
            case RUIN_DRAWTYPE_TEXT: { 
                ruin_Vec2 pos = ctx->draw_queue.items[i].draw_info_union.draw_text.pos;
              #ifdef USE_FREETYPE
-               // ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
+                if (ctx->draw_queue.items[i].draw_info_union.draw_text.text != NULL)
+                    ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
              #else
                DrawText(ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 16, BLACK);
              #endif
@@ -94,7 +94,6 @@ void ruin_RaylibRender(ruin_Context* ctx) {
        };
    };
 
-   // ruin_RaylibDrawText(ctx, "Hello", 0, 0, 1, (ruin_Color) {});
 
    ctx->draw_queue.index = 0;
 

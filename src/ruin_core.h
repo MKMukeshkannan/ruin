@@ -48,7 +48,7 @@ typedef enum   ruin_DrawType    {
     RUIN_DRAWTYPE_RECT,
     RUIN_DRAWTYPE_CLIP,
     RUIN_DRAWTYPE_TEXT 
-}                                               ruin_DrawType;
+} ruin_DrawType;
 
 typedef struct ruin_Size            { ruin_SizeKind kind; F32 value; F32 strictness; }                                                           ruin_Size;
 typedef struct ruin_Vec2            { F32 x, y; }                                                                                                ruin_Vec2;

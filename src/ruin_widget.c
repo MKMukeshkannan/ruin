@@ -93,9 +93,9 @@ B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(ctx, label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
     if (button_widget == NULL) {
-        ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, });
+        // ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, });
         button_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
-        ruin_RectSideStack__Pop(&ctx->padding_stack);
+        // ruin_RectSideStack__Pop(&ctx->padding_stack);
     }
 
     ruin_Rect rect = button_widget->draw_coords.bbox;

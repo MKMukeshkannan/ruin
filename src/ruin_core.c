@@ -43,7 +43,7 @@ void ruin_SetFontCount(ruin_Context *ctx, size_t number_of_font_sizes) {
 
     // USED TO STORE GLYPH / BITMAP DATA, WHICH IS CLEARED
     ctx->font_bitmap_arena = arena;
-    ctx->fonts = ruin_FontInfoArray__Init(&ctx->arena, 1);
+    ctx->fonts = ruin_FontInfoArray__Init(&ctx->arena, number_of_font_sizes);
 };
 
 ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 font_size) { 
@@ -87,7 +87,6 @@ ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name,
         font.bitmap[c].advance = face->glyph->advance.x;
         font.bitmap[c].buffer = gray_alpha_data;
         font.bitmap[c].pitch = face->glyph->bitmap.pitch;
-        
     };
 
     ruin_FontInfoArray__Push(&ctx->fonts, font);
@@ -95,7 +94,7 @@ ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name,
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
-    return (ctx->fonts.index - 1);
+    return (ctx->fonts.index);
 };
 
 void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget) {
@@ -173,7 +172,7 @@ ruin_Context* create_ruin_context() {
     ruin_ColorStack__Push(&ctx->active_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
 
     ruin_AxisStack__Push(&ctx->child_direction_stack, RUIN_AXISX);
-    ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .top = 5, .bottom = 5, .left = 5, .right = 5} );
+    ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .top = 0, .bottom = 0, .left = 0, .right = 0} );
 
     return ctx;
 };
@@ -439,13 +438,13 @@ internal void compute__draw_coordinates(ruin_Context* ctx, ruin_WidgetStack* wid
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling) 
             ruin_WidgetStack__Push(widget_stack, widget);
 
-
         if (current_top->parent == NULL) continue;
 
         current_top->draw_coords.bbox.x = 
             current_top->parent->padding.left
             + current_top->parent->draw_coords.bbox.x 
             + current_top->parent->partially_offset.x;
+
         current_top->draw_coords.bbox.y = 
             current_top->parent->padding.top
             + current_top->parent->draw_coords.bbox.y 
@@ -477,9 +476,6 @@ internal void compute__draw_coordinates(ruin_Context* ctx, ruin_WidgetStack* wid
         };
 
         ruin_Rect rect = current_top->draw_coords.bbox;
-
-        // DEBUGPRINT
-        // printf("frame:%llu - name:%s \n\tx:%f y:%f w:%f h:%f \n\tww:%f hh:%f\n\tfx:%f fy:%f\n", ctx->frame, current_top->widget_name.data, rect.x, rect.y, rect.w, rect.h, rect.w - rect.x, rect.h - rect.y, current_top->fixed_size.x, current_top->fixed_size.y);
     };
 
     ruin_WidgetStack__Clear(widget_stack);
