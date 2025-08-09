@@ -42,7 +42,7 @@ void *arena_alloc_align(Arena *a, size_t size, size_t align) {
 		memset(ptr, 0, size);
 		return ptr;
 	}
-    printf("OUT OF MEMORY\n");
+    printf("[RUIN ERROR] :: OUT OF MEMORY\n\toffset:%zu\n\ttotalsize:%zu\n\trequestd size:%zu\n", a->curr_offset, a->buf_len, size);
 	return NULL;
 }
 

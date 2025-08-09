@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 #include "base.h"
+#include <assert.h>
 
 #define RUIN_TRANSIENT_ID    (U64)-1
 #define WIDGET_ARRAY    40
@@ -55,8 +56,6 @@ typedef struct ruin_Rect            { F32 x, y, h, w; }                         
 typedef struct ruin_Color           { U8 r, g, b, a; }                                                                                           ruin_Color;
 typedef struct ruin_RectSide        { U8 left, right, top, bottom; }                                                                         ruin_RectSide;
 
-DECLARE_ARRAY(u32, U32);
-
 typedef struct ruin_Bitmap {
     U32 width;
     S64 height;
@@ -73,8 +72,7 @@ typedef struct ruin_FontInfo {
     ruin_Bitmap     bitmap[128];
 } ruin_FontInfo;
 
-DECLARE_ARRAY(fontInfo, ruin_FontInfo);
-
+// DECLARE_ARRAY(fontInfo, ruin_FontInfo);
 
 ruin_Color make_color_hex(U32 color);
 
@@ -146,41 +144,41 @@ typedef size_t ruin_FontID;
 * DECLARE_STACK(rectsides, ruin_RectSide);
 * DECLARE_STACK(font, ruin_FontID);
 */
-typedef struct {
-  S16 top;
-  ruin_Color items[4];
-} ruin_ColorStack;
-static bool is_color_stack_empty(ruin_ColorStack *stack) { return (stack->top == -1); };
-static ruin_Color *get_color_stack_top(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-static ruin_Color *pop_color_stack(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-static void push_color_stack(ruin_ColorStack *stack, ruin_Color item) { stack->items[++stack->top] = item; };
-
-typedef struct {
-  S16 top;
-  ruin_Axis items[4];
-} ruin_AxisStack;
-static _Bool is_axis_stack_empty(ruin_AxisStack *stack) { return (stack->top == -1); };
-static ruin_Axis *get_axis_stack_top(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-static ruin_Axis *pop_axis_stack(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-static void push_axis_stack(ruin_AxisStack *stack, ruin_Axis item) { stack->items[++stack->top] = item; };
-
-typedef struct {
-  S16 top;
-  ruin_RectSide items[4];
-} ruin_RectSideStack;
-static _Bool is_rectsides_stack_empty(ruin_RectSideStack *stack) { return (stack->top == -1); };
-static ruin_RectSide *get_rectsides_stack_top(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-static ruin_RectSide *pop_rectsides_stack(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-static void push_rectsides_stack(ruin_RectSideStack *stack, ruin_RectSide item) { stack->items[++stack->top] = item; };
-
-typedef struct {
-  S16 top;
-  ruin_FontID items[4];
-} ruin_FontIDStack;
-static _Bool is_font_stack_empty(ruin_FontIDStack *stack) { return (stack->top == -1); };
-static ruin_FontID *get_font_stack_top(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
-static ruin_FontID *pop_font_stack(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
-static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->items[++stack->top] = item; };
+// typedef struct {
+//   S16 top;
+//   ruin_Color items[4];
+// } ruin_ColorStack;
+// static bool is_color_stack_empty(ruin_ColorStack *stack) { return (stack->top == -1); };
+// static ruin_Color *get_color_stack_top(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+// static ruin_Color *pop_color_stack(ruin_ColorStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+// static void push_color_stack(ruin_ColorStack *stack, ruin_Color item) { stack->items[++stack->top] = item; };
+// 
+// typedef struct {
+//   S16 top;
+//   ruin_Axis items[4];
+// } ruin_AxisStack;
+// static _Bool is_axis_stack_empty(ruin_AxisStack *stack) { return (stack->top == -1); };
+// static ruin_Axis *get_axis_stack_top(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+// static ruin_Axis *pop_axis_stack(ruin_AxisStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+// static void push_axis_stack(ruin_AxisStack *stack, ruin_Axis item) { stack->items[++stack->top] = item; };
+// 
+// typedef struct {
+//   S16 top;
+//   ruin_RectSide items[4];
+// } ruin_RectSideStack;
+// static _Bool is_rectsides_stack_empty(ruin_RectSideStack *stack) { return (stack->top == -1); };
+// static ruin_RectSide *get_rectsides_stack_top(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+// static ruin_RectSide *pop_rectsides_stack(ruin_RectSideStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+// static void push_rectsides_stack(ruin_RectSideStack *stack, ruin_RectSide item) { stack->items[++stack->top] = item; };
+// 
+// typedef struct {
+//   S16 top;
+//   ruin_FontID items[4];
+// } ruin_FontIDStack;
+// static _Bool is_font_stack_empty(ruin_FontIDStack *stack) { return (stack->top == -1); };
+// static ruin_FontID *get_font_stack_top(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top]; };
+// static ruin_FontID *pop_font_stack(ruin_FontIDStack *stack) { return (stack->top == -1) ? NULL : &stack->items[stack->top--]; };
+// static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->items[++stack->top] = item; };
 
 
 // CURENTLY PUSHABLE IS THE INDEX
@@ -249,6 +247,12 @@ static void push_font_stack(ruin_FontIDStack *stack, ruin_FontID item) { stack->
 
 DEFINE_ARRAY_CACHES(ruin_Widget);
 DEFINE_ARRAY_CACHES(ruin_Window);
+DEFINE_ARRAY_CACHES(ruin_FontInfo);
+
+DEFINE_STACKS(ruin_Color);
+DEFINE_STACKS(ruin_Axis);
+DEFINE_STACKS(ruin_RectSide);
+DEFINE_STACKS(ruin_FontInfo);
 
 // DEFINE_STACKS(ruin_Widget);
 typedef struct {
@@ -256,7 +260,6 @@ typedef struct {
     U32 capacity;
     ruin_Widget* items[20];
 } ruin_WidgetStack;
-
 internal bool ruin_WidgetStack__IsEmpty(ruin_WidgetStack* stack) {
     if (stack == NULL) {
         fprintf(stderr, "[RUIN_ERROR]: INVALID STACK POINTER ON %s\n", STR(ruin_WidgetStack__IsEmpty));
@@ -271,7 +274,7 @@ internal ruin_Widget* ruin_WidgetStack__GetTop(ruin_WidgetStack* stack) {
         return NULL;
     };
     if (stack->top == 0 || stack->top > stack->capacity) {
-        fprintf(stderr, "[RUIN_ERROR]: INVALID TOP ACCESS ON %s\n", STR(ruin_WidgetStack__Get));
+        fprintf(stderr, "[RUIN_ERROR]: INVALID TOP ACCESS ON %s, stack_top:%u and stack_capacity:%u\n", STR(ruin_WidgetStack__Get), stack->top, stack->capacity);
         return NULL;
     };
     if (stack->items[stack->top - 1] == NULL ) {
@@ -307,14 +310,13 @@ internal ruin_Widget* ruin_WidgetStack__Pop(ruin_WidgetStack* stack) {
         fprintf(stderr, "[RUIN_ERROR]: INVALID STACK ITEMS POINTER ON %s\n", STR(ruin_WidgetStack__Pop));
         return NULL;
     };
-    // printf("%u\n", stack->top);
     return stack->items[--stack->top];
 };
 
 internal ruin_WidgetStack* ruin_WidgetStack__Init(Arena* arena) {
     ruin_WidgetStack* res = (ruin_WidgetStack*)arena_alloc(arena, sizeof(ruin_WidgetStack));
     res->top = 0;
-    res->capacity = 100;
+    res->capacity = 20;
     if (arena == NULL) {
         fprintf(stderr, "[RUIN_ERROR]: INVALID ARENA POINTER on %s\n", STR(ruin_WidgetStack__Init));
         return res;
@@ -342,8 +344,8 @@ typedef struct {
     Arena arena;       // persisted arena, across frames
     Arena temp_arena;  // reseted every frames, holds transient widgets
 
-    Arena font_build;  // happens once, stores all glyph, bitmap and codespace information
-    ruin_FontInfoArray* fonts;
+    Arena font_bitmap_arena;  // happens once, stores all glyph, bitmap and codespace information
+    ruin_FontInfoArray fonts;
                        
     ruin_Window* current_window;
 
@@ -359,7 +361,7 @@ typedef struct {
     ruin_ColorStack    active_color_stack;
     ruin_RectSideStack padding_stack; 
     ruin_AxisStack     child_direction_stack;
-    ruin_FontIDStack   font_stack;
+    ruin_FontInfoStack font_stack;
 
     ruin_WidgetStack* parent_stack;
 } ruin_Context;

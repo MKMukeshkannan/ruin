@@ -16,8 +16,7 @@ int main(void) {
 
     ruin_Context* ctx = create_ruin_context();
 
-    ruin_SetFontCount(ctx, 2);
-    ruin_FontID jetbrains_16 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_16", 16);
+    ruin_SetFontCount(ctx, 1);
     ruin_FontID jetbrains_20 = ruin_LoadFont(ctx, "resources/jetbrains.ttf", "JETBRAINS_20", 20);
 
     ruin_RaylibInit(ctx);

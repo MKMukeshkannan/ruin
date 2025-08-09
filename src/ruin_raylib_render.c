@@ -11,16 +11,13 @@ typedef struct {
     String8 font_name;
     Texture2D textures[128];
 } FontTextures;
-DECLARE_ARRAY(fonts_textures, FontTextures);
-DEFINE_ARRAY(fonts_textures, FontTextures);
+DEFINE_ARRAY_CACHES(FontTextures);
 
 static FontTexturesArray g_raylib_font_textures;
 
 void ruin_RaylibInit(ruin_Context* ctx) {
-    ruin_FontInfoArray* fonts = ctx->fonts;
-    g_raylib_font_textures.capacity = fonts->capacity;
-    g_raylib_font_textures.index = 0;
-    g_raylib_font_textures.items = (FontTextures*)arena_alloc(&ctx->arena, sizeof(FontTextures));
+    ruin_FontInfoArray* fonts = &ctx->fonts;
+    g_raylib_font_textures = FontTexturesArray__Init(&ctx->arena, 1);
 
    for (int i = 0; i < fonts->index; ++i) {
        Image img = {0};
@@ -45,7 +42,7 @@ void ruin_RaylibInit(ruin_Context* ctx) {
 
 #ifdef USE_FREETYPE
 void ruin_RaylibDrawText(ruin_Context* ctx, const char* string, float x, float y, float scale, ruin_Color color) {
-    ruin_FontInfoArray* fonts = ctx->fonts;
+    ruin_FontInfoArray* fonts = &ctx->fonts;
     ruin_Bitmap current_char;
     size_t i = 0;
     
@@ -88,7 +85,7 @@ void ruin_RaylibRender(ruin_Context* ctx) {
            case RUIN_DRAWTYPE_TEXT: { 
                ruin_Vec2 pos = ctx->draw_queue.items[i].draw_info_union.draw_text.pos;
              #ifdef USE_FREETYPE
-               ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
+               // ruin_RaylibDrawText(ctx, ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 1, (ruin_Color) {});
              #else
                DrawText(ctx->draw_queue.items[i].draw_info_union.draw_text.text, pos.x, pos.y, 16, BLACK);
              #endif

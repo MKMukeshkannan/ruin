@@ -9,44 +9,41 @@ void push_font_info(ruin_FontInfoArray* array, ruin_FontInfo *font) {
    array->items[array->index++] = *font;
 };
 
-ruin_FontInfo* get_current_active_font(ruin_Context* ctx) {
-    ruin_FontID* id = get_font_stack_top(&ctx->font_stack) - 1;
-    String8 name = ctx->fonts->items[*id].font_name;
-    if (name.data == NULL) {
-        printf("empty stack\n");
-        return NULL;
-    };
-
-    ruin_FontInfoArray* font_array = ctx->fonts;
-    for (int i = 0; i < font_array->index; ++i) {
-        if (str_equal(name, font_array->items[i].font_name)) {
-            return &font_array->items[i];
-        };
-    };
-
-    return NULL;
-};
+// ruin_FontInfo* get_current_active_font(ruin_Context* ctx) {
+//     ruin_FontID* id = get_font_stack_top(&ctx->font_stack) - 1;
+//     String8 name = ctx->fonts->items[*id].font_name;
+//     if (name.data == NULL) {
+//         printf("empty stack\n");
+//         return NULL;
+//     };
+// 
+//     ruin_FontInfoArray* font_array = ctx->fonts;
+//     for (int i = 0; i < font_array->index; ++i) {
+//         if (str_equal(name, font_array->items[i].font_name)) {
+//             return &font_array->items[i];
+//         };
+//     };
+// 
+//     return NULL;
+// };
 
 internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string) {
     F32 width = 0;
     for (int i = 0; i < string.len; ++i)
-        width += (get_current_active_font(ctx)->bitmap[string.data[i]].advance >> 6); 
+        width += (ruin_FontInfoArray__Get(&ctx->fonts, 0)->bitmap[string.data[i]].advance >> 6); 
 
     return width;
 };
 
 void ruin_SetFontCount(ruin_Context *ctx, size_t number_of_font_sizes) {
-    const U32 ARENA_SIZE = 32096;
+    const U32 ARENA_SIZE = 42096;
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
 
-    ctx->font_build = arena;
-
-    ctx->fonts = (ruin_FontInfoArray*)arena_alloc(&ctx->font_build, sizeof(ruin_FontInfoArray));
-    ctx->fonts->capacity = number_of_font_sizes + 1;
-    ctx->fonts->index = 0;
-    ctx->fonts->items = (ruin_FontInfo*)arena_alloc(&ctx->font_build, sizeof(ruin_FontInfo) * number_of_font_sizes);
+    // USED TO STORE GLYPH / BITMAP DATA, WHICH IS CLEARED
+    ctx->font_bitmap_arena = arena;
+    ctx->fonts = ruin_FontInfoArray__Init(&ctx->arena, 1);
 };
 
 ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name, U32 font_size) { 
@@ -75,6 +72,7 @@ ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name,
         };
 
         size_t total_pixels = face->glyph->bitmap.width * face->glyph->bitmap.rows;
+        // U8* gray_alpha_data = (U8*)arena_alloc(&ctx->font_bitmap_arena, total_pixels * 2); 
         U8* gray_alpha_data = (U8*)malloc(total_pixels * 2); 
         for (size_t i = 0; i < total_pixels; i++) {
             gray_alpha_data[i * 2 + 0] = face->glyph->bitmap.buffer[i];
@@ -91,16 +89,13 @@ ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char *path, const char *name,
         font.bitmap[c].pitch = face->glyph->bitmap.pitch;
         
     };
+
+    ruin_FontInfoArray__Push(&ctx->fonts, font);
  
-    push_font_info(ctx->fonts, &font);
-    if (!is_font_stack_empty(&ctx->font_stack)) pop_font_stack(&ctx->font_stack);
-    push_font_stack(&ctx->font_stack, ctx->fonts->index);
-
-
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
-    return ctx->fonts->index;
+    return (ctx->fonts.index - 1);
 };
 
 void push_widget_narry(ruin_Widget* root_widget, ruin_Widget* new_widget) {
@@ -143,13 +138,13 @@ ruin_Id hash_string(ruin_Context* ctx, const char* str) {
 };
 
 ruin_Context* create_ruin_context() {
-    const U32 ARENA_SIZE = 42288;
+    const U32 ARENA_SIZE = 46001;
     Arena arena = {0};
     unsigned char* buffer = (unsigned char*) malloc(ARENA_SIZE);
     arena_init(&arena, buffer, ARENA_SIZE);
 
 
-    const U32 TEMP_ARENA_SIZE = 2048;
+    const U32 TEMP_ARENA_SIZE = 36000;
     Arena temp_arena = {0};
     unsigned char* temp_buffer = (unsigned char*) malloc(TEMP_ARENA_SIZE);
     arena_init(&temp_arena, temp_buffer, TEMP_ARENA_SIZE);
@@ -159,15 +154,26 @@ ruin_Context* create_ruin_context() {
     MEM_ZERO(ctx, sizeof(ruin_Context));
     ctx->arena = arena;
     ctx->temp_arena = temp_arena;
-    ctx->widgets = ruin_WidgetArray__Init(&arena, WIDGET_ARRAY);
-    ctx->windows = ruin_WindowArray__Init(&arena, WINDOW_ARRAY);
+    ctx->widgets = ruin_WidgetArray__Init(&ctx->arena, WIDGET_ARRAY);
+    ctx->windows = ruin_WindowArray__Init(&ctx->arena, WINDOW_ARRAY);
 
-    ctx->parent_stack = ruin_WidgetStack__Init(&arena);
+    ctx->parent_stack = ruin_WidgetStack__Init(&ctx->arena);
+    ctx->active_color_stack = ruin_ColorStack__Init(&ctx->arena, 4);
+    ctx->background_color_stack = ruin_ColorStack__Init(&ctx->arena, 4);
+    ctx->foreground_color_stack = ruin_ColorStack__Init(&ctx->arena, 4);
+    ctx->hover_color_stack = ruin_ColorStack__Init(&ctx->arena, 4);
 
-    push_color_stack(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
-    push_color_stack(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
-    push_color_stack(&ctx->hover_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
-    push_color_stack(&ctx->active_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
+    ctx->font_stack = ruin_FontInfoStack__Init(&ctx->arena, 2);
+    ctx->child_direction_stack = ruin_AxisStack__Init(&ctx->arena, 4);
+    ctx->padding_stack = ruin_RectSideStack__Init(&ctx->arena, 4);
+
+    ruin_ColorStack__Push(&ctx->background_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
+    ruin_ColorStack__Push(&ctx->foreground_color_stack, (ruin_Color) {.r=50, .g=50, .b=50, .a=1});
+    ruin_ColorStack__Push(&ctx->hover_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
+    ruin_ColorStack__Push(&ctx->active_color_stack, (ruin_Color) {.r=250, .g=50, .b=50, .a=1});
+
+    ruin_AxisStack__Push(&ctx->child_direction_stack, RUIN_AXISX);
+    ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .top = 5, .bottom = 5, .left = 5, .right = 5} );
 
     return ctx;
 };
@@ -200,8 +206,8 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
     widget->id = id;
     widget->flags = opt;
 
-    widget->child_layout_axis = *get_axis_stack_top(&ctx->child_direction_stack);
-    widget->padding = *get_rectsides_stack_top(&ctx->padding_stack);
+    widget->child_layout_axis = *ruin_AxisStack__GetTop(&ctx->child_direction_stack);
+    widget->padding = *ruin_RectSideStack__GetTop(&ctx->padding_stack);
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_TEXT) {
         widget->size[RUIN_AXISX] = (ruin_Size) { .kind = RUIN_SIZEKIND_TEXTCONTENT, .value = 0, .strictness = 1, };
@@ -209,10 +215,10 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BACKGROUND) {
-        widget->background_color = *get_color_stack_top(&ctx->background_color_stack);
-        widget->foreground_color = *get_color_stack_top(&ctx->foreground_color_stack);
-        widget->hover_color = *get_color_stack_top(&ctx->hover_color_stack);
-        widget->active_color = *get_color_stack_top(&ctx->active_color_stack);
+        widget->background_color = *ruin_ColorStack__GetTop(&ctx->background_color_stack);
+        widget->foreground_color = *ruin_ColorStack__GetTop(&ctx->foreground_color_stack);
+        widget->hover_color =      *ruin_ColorStack__GetTop(&ctx->hover_color_stack);
+        widget->active_color =     *ruin_ColorStack__GetTop(&ctx->active_color_stack);
     };
 
     if (opt & RUIN_WIDGETFLAGS_DRAW_BORDER) {
@@ -314,7 +320,7 @@ internal void compute__raw_sizes(ruin_Context* ctx, ruin_WidgetStack* widget_sta
             current_top->fixed_size.x = ruin_GetWidth(ctx, current_top->display_text);
 
         if (current_top->size[RUIN_AXISY].kind == RUIN_SIZEKIND_TEXTCONTENT) 
-            current_top->fixed_size.y = (F32)ctx->fonts->items[0].bitmap[0].height / 64;
+            current_top->fixed_size.y = (F32)ruin_FontInfoArray__Get(&ctx->fonts, 0)->bitmap[0].height / 64;
 
         for (ruin_Widget* widget = current_top->last_child; widget != NULL; widget = widget->prev_sibling)
             ruin_WidgetStack__Push(widget_stack, widget);

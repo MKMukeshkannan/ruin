@@ -93,17 +93,17 @@ B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Id id = hash_string(ctx, label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
     if (button_widget == NULL) {
-        push_rectsides_stack(&ctx->padding_stack, (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, });
+        ruin_RectSideStack__Push(&ctx->padding_stack, (ruin_RectSide) { .left = 16, .right = 16, .top = 8, .bottom = 8, });
         button_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
-        pop_rectsides_stack(&ctx->padding_stack);
+        ruin_RectSideStack__Pop(&ctx->padding_stack);
     }
 
     ruin_Rect rect = button_widget->draw_coords.bbox;
     ruin_Vec2 mouse_position = ctx->mouse_position;
     if (hovered(rect, mouse_position)) {
-        button_widget->background_color = *get_color_stack_top(&ctx->active_color_stack);
+        button_widget->background_color = *ruin_ColorStack__GetTop(&ctx->active_color_stack);
     } else {
-        button_widget->background_color = *get_color_stack_top(&ctx->background_color_stack);
+        button_widget->background_color = *ruin_ColorStack__GetTop(&ctx->background_color_stack);
     };
 
     push_widget_narry(ruin_WidgetStack__GetTop(ctx->parent_stack), button_widget);
