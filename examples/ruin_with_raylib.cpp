@@ -25,17 +25,9 @@ int main(void) {
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
-       Vector2 m_pos = GetMousePosition();
-       ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
-       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_LEFT;
-       };
-       if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_LEFT;
-       };
-       printf("click: %u\n", ctx->mouse_action);
-       ClearBackground(WHITE);
+       ruin_RaylibUpdateIO(ctx);
 
+       ClearBackground(WHITE);
 
        //
        // START HIERARCHY

@@ -325,6 +325,7 @@ typedef struct {
 } ruin_Context;
 
 ruin_Id hash_string(ruin_Context* ctx, const char* str);
+// void ruin_UpdateIO(ruin_Context* ctx);
 void ruin_SetFontCount(ruin_Context* ctx, size_t number_of_font_sizes);
 ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char* path, const char* name, U32 font_size);
 ruin_Context* create_ruin_context();

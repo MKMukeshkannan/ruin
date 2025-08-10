@@ -15,6 +15,16 @@ DEFINE_ARRAY_CACHES(FontTextures);
 
 static FontTexturesArray g_raylib_font_textures;
 
+void ruin_RaylibUpdateIO(ruin_Context* ctx) {
+   Vector2 m_pos = GetMousePosition();
+   ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
+
+   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_LEFT; };
+   if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) { ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_LEFT; };
+
+
+};
+
 void ruin_RaylibInit(ruin_Context* ctx) {
     ruin_FontInfoArray* fonts = &ctx->fonts;
     g_raylib_font_textures = FontTexturesArray__Init(&ctx->arena, fonts->capacity);
