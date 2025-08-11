@@ -25,36 +25,49 @@ int main(void) {
 
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
-       ruin_RaylibUpdateIO(ctx);
+        ruin_RaylibUpdateIO(ctx);
 
-       ClearBackground(WHITE);
+        ClearBackground(WHITE);
 
-       //
-       // START HIERARCHY
-       ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 300, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        // START HIERARCHY
+        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 500, .w = 500, }, RUIN_WINDOWFLAGS_DRAGABLE);
+            ruin_FontIDStack__Push(&ctx->font_stack, jetbrains_24);
+            ruin_Label(ctx, "Image Editor");
+            ruin_FontIDStack__Pop(&ctx->font_stack);
 
-       ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
-       ruin_Label(ctx, "Image Editor");
-       ruin_FontIDStack__Pop(&ctx->font_stack);
-
-
-       ruin_SameLine(ctx, "grain_group") {
-           ruin_Label(ctx, "grain");
-           ruin_SpacerFillX(ctx);
-           if (ruin_Button(ctx, "20")) {
-               printf("helo\n");
-           };
-       };
-       ruin_SameLine(ctx, "grain_group2") {
-           ruin_Label(ctx, "grain");
-           ruin_SpacerFillX(ctx);
-           ruin_Button(ctx, "70");
-       };
-
+            ruin_SameLine(ctx, "grain_group") {
+                ruin_Label(ctx, "grain");
+                ruin_SpacerFillX(ctx);
+                if (ruin_Button(ctx, "20")) {
+                    printf("helo\n");
+                };
+            };
+            ruin_SameLine(ctx, "grain_group##a") {
+                ruin_Label(ctx, "grain");
+                ruin_SpacerFillX(ctx);
+                ruin_Button(ctx, "70");
+            };
+            ruin_SameLine(ctx, "grain_group##b") {
+                ruin_Label(ctx, "grain");
+                ruin_SpacerFillX(ctx);
+                ruin_Button(ctx, "70");
+            };
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY
-        //
+        
+        
+        // BEGIN
+        ruin_BeginWindow(ctx, "Inspector 2", (ruin_Rect) {.x=10, .y = 100, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
 
+            ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
+            ruin_Label(ctx, "Image Editor");
+            ruin_FontIDStack__Pop(&ctx->font_stack);
+
+            ruin_Label(ctx, "Image Editor##a");
+
+
+        ruin_EndWindow(ctx);
+        //
 
         ruin_ComputeLayout(ctx);
         ruin_RaylibRender(ctx);

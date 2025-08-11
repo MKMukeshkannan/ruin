@@ -239,7 +239,10 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     };
     ctx->current_window = window;
 
-    ruin_Id root_id = hash_string(ctx, "root##default");
+    char buffer[50];
+    snprintf(buffer, sizeof(buffer), "root##default%s", title);
+
+    ruin_Id root_id = hash_string(ctx, buffer);
     ruin_Widget* root = get_widget_by_id(ctx, root_id);
     if (root == NULL) {
         ruin_Widget temp;
@@ -260,7 +263,8 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         temp.partially_offset.x = 0;
         temp.partially_offset.y = 0;
 
-        temp.flags |= RUIN_WIDGETFLAGS_DRAW_BORDER;
+        temp.flags = RUIN_WIDGETFLAGS_DRAW_BORDER|RUIN_WIDGETFLAGS_DRAW_BACKGROUND;
+        temp.background_color = (ruin_Color) {.r=250, .g=250, .b=250, .a=255};
         temp.child_layout_axis = RUIN_AXISY;
 
         temp.padding = (ruin_RectSide) { .left = 20, .right = 20, .top = 20, .bottom = 20 };
@@ -502,14 +506,21 @@ internal void generate__draw_calls(ruin_Context* ctx, ruin_WidgetStack* widget_s
     ruin_WidgetStack__Clear(widget_stack);
 };
 
+internal bool hovered_window(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
+    return mouse_position.x >= rectangle.x && mouse_position.x <= rectangle.w && mouse_position.y >= rectangle.y && mouse_position.y <= rectangle.h;
+};
+
 void ruin_ComputeLayout(ruin_Context* ctx) { 
 
     Temp_Arena_Memory temp_mem = temp_arena_memory_begin(&ctx->arena);
     ruin_WidgetStack* widget_stack = ruin_WidgetStack__Init(temp_mem.arena);
     ruin_WidgetStack* widget_stack2 = ruin_WidgetStack__Init(temp_mem.arena);
 
+
+    ruin_Id window;
     for (size_t i = 0; i < ctx->windows.index; ++i) {
         ruin_Widget* root = ruin_WindowArray__Get(&ctx->windows, i)->root_widget;
+        // printf("window %s %f\n", ruin_WindowArray__Get(&ctx->windows, i)->title, root->draw_coords.bbox.x);
 
         compute__raw_sizes(ctx, widget_stack, root);
         compute__parent_depend_sizes(ctx, widget_stack, root);
@@ -518,6 +529,13 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
         compute__draw_coordinates(ctx, widget_stack, root);
 
         generate__draw_calls(ctx, widget_stack, root);
+
+        if (hovered_window(root->draw_coords.bbox, ctx->mouse_position)) {
+            window =  ruin_WindowArray__Get(&ctx->windows, i)->id;
+        };
+    };
+    for (size_t i = 0; i < ctx->windows.index; ++i) {
+        if (ruin_WindowArray__Get(&ctx->windows, i)->id == window) printf("hoverd: %s\n", ruin_WindowArray__Get(&ctx->windows, i)->title);
     };
 
     temp_arena_memory_end(temp_mem);
