@@ -238,6 +238,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         window = ruin_WindowArray__Push(&ctx->windows, temp);
     };
     ctx->current_window = window;
+    // printf("id: %llu\n", window->id);
 
     char buffer[50];
     snprintf(buffer, sizeof(buffer), "root##default%s", title);
@@ -529,13 +530,18 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
         compute__draw_coordinates(ctx, widget_stack, root);
 
         generate__draw_calls(ctx, widget_stack, root);
+        printf("%s => ", ruin_WindowArray__Get(&ctx->windows, i)->title);
 
         if (hovered_window(root->draw_coords.bbox, ctx->mouse_position)) {
             window =  ruin_WindowArray__Get(&ctx->windows, i)->id;
         };
     };
+    printf("\n");
     for (size_t i = 0; i < ctx->windows.index; ++i) {
-        if (ruin_WindowArray__Get(&ctx->windows, i)->id == window) printf("hoverd: %s\n", ruin_WindowArray__Get(&ctx->windows, i)->title);
+        if (ruin_WindowArray__Get(&ctx->windows, i)->id == window) {
+            ruin_WindowArray__MoveElementToLast(&ctx->windows, window);
+            // printf("hoverd: %s\n", ruin_WindowArray__Get(&ctx->windows, i)->title);
+        };
     };
 
     temp_arena_memory_end(temp_mem);

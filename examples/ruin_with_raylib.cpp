@@ -55,17 +55,23 @@ int main(void) {
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY
         
-        
         // BEGIN
-        ruin_BeginWindow(ctx, "Inspector 2", (ruin_Rect) {.x=10, .y = 100, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
-
+        ruin_BeginWindow(ctx, "Inspector 2", (ruin_Rect) {.x=400, .y = 100, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
             ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
             ruin_Label(ctx, "Image Editor");
             ruin_FontIDStack__Pop(&ctx->font_stack);
 
             ruin_Label(ctx, "Image Editor##a");
+        ruin_EndWindow(ctx);
+        //
+        
+        // BEGIN
+        ruin_BeginWindow(ctx, "Inspector 3", (ruin_Rect) {.x=370, .y = 200, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
+            ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
+            ruin_Label(ctx, "Image Editor");
+            ruin_FontIDStack__Pop(&ctx->font_stack);
 
-
+            ruin_Label(ctx, "Image Editor##a");
         ruin_EndWindow(ctx);
         //
 

@@ -202,6 +202,29 @@ struct ruin_Window {
 
 DEFINE_ARRAY_CACHES(ruin_Widget);
 DEFINE_ARRAY_CACHES(ruin_Window);
+internal void ruin_WindowArray__MoveElementToLast(ruin_WindowArray* array, ruin_Id window_id) {
+    if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", "ruin_WindowArray__MoveElementToLast"); return; };
+    if (array->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY ITEMS POINTER ON %s\n", "ruin_WindowArray__MoveElementToLast"); return; }; 
+
+    ruin_Window temp = {0};
+    for (size_t i = 0; i < array->index; ++i) {
+        ruin_Window* current = ruin_WindowArray__Get(array, i);
+        if (current->id == window_id) {
+            temp = *current;
+
+            for (size_t j = i; j < array->index; ++j) {
+                *ruin_WindowArray__Get(array, j) = *ruin_WindowArray__Get(array, j + 1);
+            };
+            *ruin_WindowArray__Get(array, array->index - 1) = temp;
+
+            return;
+        };
+    };
+    if (temp.id == 0) fprintf(stderr, "[RUIN_ERROR]: WE COULD NOT FIND WINDOW WITH THE GIVEN ID!!!\n");
+    printf("active: %llu", window_id);
+};
+
+
 DEFINE_ARRAY_CACHES(ruin_FontInfo);
 
 DEFINE_STACKS(ruin_Color);
