@@ -16,13 +16,31 @@ DEFINE_ARRAY_CACHES(FontTextures);
 static FontTexturesArray g_raylib_font_textures;
 
 void ruin_RaylibUpdateIO(ruin_Context* ctx) {
+   ClearBackground(WHITE);
    Vector2 m_pos = GetMousePosition();
    ctx->mouse_position = (ruin_Vec2) { .x = m_pos.x, .y = m_pos.y };
 
    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_LEFT; };
    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) { ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_LEFT; };
 
+   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) { ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_RIGHT; };
+   if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) { ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_RIGHT; };
 
+   if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) { ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_MIDDLE; };
+   if (IsMouseButtonReleased(MOUSE_BUTTON_MIDDLE)) { ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_MIDDLE; };
+
+   if (IsMouseButtonPressed(MOUSE_BUTTON_SIDE)) { ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_EXTRA_1; };
+   if (IsMouseButtonReleased(MOUSE_BUTTON_SIDE)) { ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_EXTRA_1; };
+
+   if (IsMouseButtonPressed(MOUSE_BUTTON_EXTRA)) { ctx->mouse_action |= RUIN_MOUSE_BUTTON_CLICK_EXTRA_2; };
+   if (IsMouseButtonReleased(MOUSE_BUTTON_EXTRA)) { ctx->mouse_action &= ~RUIN_MOUSE_BUTTON_CLICK_EXTRA_2; };
+
+   // printf("\n==IO EVENTS==\n");
+   // printf("mouse position:\n\t%f, %f\n", m_pos.x, m_pos.y);
+   // printf("mouse click:\n\txxxxxrml\n\t"); for (int i = 6; i >= 0; i--) putchar((ctx->mouse_action & (1 << i)) ? '1' : '0'); printf("\n");
+   // printf("prev window:\n\t"); printf("%llu\n", ctx->prev_active_window);
+   // printf("active window:\n\t"); printf("%llu\n", ctx->active_window);
+   // printf("\n=============\n\n");
 };
 
 void ruin_RaylibInit(ruin_Context* ctx) {

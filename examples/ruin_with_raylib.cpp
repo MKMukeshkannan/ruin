@@ -2,6 +2,7 @@
 #include "ruin_core.h"
 #include "../src/ruin_raylib_render.c"
 #include "raylib.h"
+#include <cstdio>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,54 +27,50 @@ int main(void) {
     SetTargetFPS(60);
     while (!WindowShouldClose()) {
         ruin_RaylibUpdateIO(ctx);
+        ruin_PrepareFrame(ctx);
 
-        ClearBackground(WHITE);
+
+        
+        // BEGIN
+        ruin_BeginWindow(ctx, "viewer", (ruin_Rect) {.x=400, .y = 100, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        ruin_Label(ctx, "Viewer");
+        ruin_EndWindow(ctx);
+        //
+        
 
         // START HIERARCHY
-        ruin_BeginWindow(ctx, "Inspector", (ruin_Rect) {.x=0, .y = 0, .h = 500, .w = 500, }, RUIN_WINDOWFLAGS_DRAGABLE);
-            ruin_FontIDStack__Push(&ctx->font_stack, jetbrains_24);
-            ruin_Label(ctx, "Image Editor");
-            ruin_FontIDStack__Pop(&ctx->font_stack);
+        ruin_BeginWindow(ctx, "image_editor", (ruin_Rect) {.x=0, .y = 0, .h = 800, .w = 500, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        ruin_FontIDStack__Push(&ctx->font_stack, jetbrains_24);
+        ruin_Label(ctx, "Image Editor");
+        ruin_FontIDStack__Pop(&ctx->font_stack);
 
-            ruin_SameLine(ctx, "grain_group") {
-                ruin_Label(ctx, "grain");
-                ruin_SpacerFillX(ctx);
-                if (ruin_Button(ctx, "20")) {
-                    printf("helo\n");
-                };
-            };
-            ruin_SameLine(ctx, "grain_group##a") {
-                ruin_Label(ctx, "grain");
-                ruin_SpacerFillX(ctx);
-                ruin_Button(ctx, "70");
-            };
-            ruin_SameLine(ctx, "grain_group##b") {
-                ruin_Label(ctx, "grain");
-                ruin_SpacerFillX(ctx);
-                ruin_Button(ctx, "70");
-            };
+        ruin_SameLine(ctx, "grain_group") {
+            ruin_Label(ctx, "grain");
+            ruin_SpacerFillX(ctx);
+            if (ruin_Button(ctx, "20")) { };
+        };
+
+        ruin_SameLine(ctx, "blur_group") {
+            ruin_Label(ctx, "blur");
+            ruin_SpacerFillX(ctx);
+            ruin_Button(ctx, "60");
+        };
+        ruin_SameLine(ctx, "gamma_group") {
+            ruin_Label(ctx, "gamma");
+            ruin_SpacerFillX(ctx);
+            ruin_Button(ctx, "70");
+        };
         ruin_EndWindow(ctx);
         // ENDS HIERARCHY
         
         // BEGIN
-        ruin_BeginWindow(ctx, "Inspector 2", (ruin_Rect) {.x=400, .y = 100, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
-            ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
-            ruin_Label(ctx, "Image Editor");
-            ruin_FontIDStack__Pop(&ctx->font_stack);
-
-            ruin_Label(ctx, "Image Editor##a");
+        ruin_BeginWindow(ctx, "params", (ruin_Rect) {.x=370, .y = 200, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
+        ruin_Label(ctx, "params");
         ruin_EndWindow(ctx);
         //
-        
-        // BEGIN
-        ruin_BeginWindow(ctx, "Inspector 3", (ruin_Rect) {.x=370, .y = 200, .h = 200, .w = 200, }, RUIN_WINDOWFLAGS_DRAGABLE);
-            ruin_FontIDStack__Push(&ctx->font_stack, inter_24);
-            ruin_Label(ctx, "Image Editor");
-            ruin_FontIDStack__Pop(&ctx->font_stack);
 
-            ruin_Label(ctx, "Image Editor##a");
-        ruin_EndWindow(ctx);
-        //
+        printf("\n");
+
 
         ruin_ComputeLayout(ctx);
         ruin_RaylibRender(ctx);

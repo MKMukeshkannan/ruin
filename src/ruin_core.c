@@ -1,9 +1,23 @@
+#include "raylib.h"
 #include <ft2build.h>
 #include <stdio.h>
 #include FT_FREETYPE_H
 
 #include "ruin_core.h"
 
+internal void print_rect(const char* dbg, ruin_Rect rect) {
+    printf("%s => %f %f %f %f\n", dbg, rect.x, rect.y, rect.h, rect.w);
+};
+internal void print_nl() {
+    printf("\n");
+};
+
+internal bool hovered_window(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
+    return mouse_position.x >= rectangle.x && 
+        mouse_position.x <= (rectangle.x + rectangle.w) && 
+        mouse_position.y >= rectangle.y && 
+        mouse_position.y <= (rectangle.y + rectangle.h);
+};
 internal F32 ruin_GetWidth(ruin_Context* ctx, String8 string, ruin_FontID font_id) {
     F32 width = 0;
     for (int i = 0; i < string.len; ++i)
@@ -104,14 +118,14 @@ void ruin_PushWidgetNArray(ruin_Widget* root_widget, ruin_Widget* new_widget) {
 };
 
 
-ruin_Id hash_string(ruin_Context* ctx, const char* str) {
+ruin_WidgetID hash_string(ruin_Context* ctx, const char* str) {
     if (str == NULL || str[0] == '\0') return RUIN_TRANSIENT_ID;
 
     char buf[64];
-    ruin_Id parent_id = ruin_WidgetStack__IsEmpty(ctx->parent_stack) ? RUIN_TRANSIENT_ID: ruin_WidgetStack__GetTop(ctx->parent_stack)->id;
+    ruin_WidgetID parent_id = ruin_WidgetStack__IsEmpty(ctx->parent_stack) ? RUIN_TRANSIENT_ID: ruin_WidgetStack__GetTop(ctx->parent_stack)->id;
     snprintf(buf, sizeof(buf), "seed%llu_label%s", parent_id, str);
 
-    ruin_Id hash = 5381; int c; int i = 0;
+    ruin_WidgetID hash = 5381; int c; int i = 0;
     while ((c = buf[i++]))  hash = ((hash << 5) + hash) + c;
 
     return hash;
@@ -159,7 +173,7 @@ ruin_Context* create_ruin_context() {
     return ctx;
 };
 
-ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_Id id) {
+ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_WidgetID id) {
     for (size_t i = 0; i < ctx->windows.index; ++i) {
         if (ruin_WindowArray__Get(&ctx->windows, i)->id == id)
             return ruin_WindowArray__Get(&ctx->windows, i);
@@ -168,7 +182,7 @@ ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_Id id) {
     return NULL;
 };
 
-ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id) {
+ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_WidgetID id) {
     for (size_t i = 0; i < ctx->widgets.index; ++i) {
         if (ruin_WidgetArray__Get(&ctx->widgets, i)->id == id)
             return ruin_WidgetArray__Get(&ctx->widgets, i); 
@@ -178,7 +192,7 @@ ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id) {
 };
 
 internal String8 id_seperator = String8("##");
-ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_Id id, ruin_WidgetOptions opt) {
+ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_WidgetID id, ruin_WidgetOptions opt) {
     ruin_Widget widget;
 
     widget.id = id;
@@ -221,10 +235,12 @@ ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, rui
     return ruin_WidgetArray__Push(&ctx->widgets, widget);
 };
 
-
+bool clicked(ruin_Context* ctx, ruin_Rect bbox) {
+    return hovered_window(bbox, ctx->mouse_position) && (ctx->mouse_action & 1);
+};
 
 void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin_WindowFlags flags) {
-    ruin_Id id = hash_string(ctx, title);
+    ruin_WidgetID id = hash_string(ctx, title);
     ruin_Window* window = get_window_by_id(ctx, id);
 
     if (window == NULL) {
@@ -235,7 +251,9 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
         temp.window_rect = rect;
         temp.window_flags = flags;
         
+        // caching the array...
         window = ruin_WindowArray__Push(&ctx->windows, temp);
+        ctx->active_window = window->id;
     };
     ctx->current_window = window;
     // printf("id: %llu\n", window->id);
@@ -243,7 +261,7 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     char buffer[50];
     snprintf(buffer, sizeof(buffer), "root##default%s", title);
 
-    ruin_Id root_id = hash_string(ctx, buffer);
+    ruin_WidgetID root_id = hash_string(ctx, buffer);
     ruin_Widget* root = get_widget_by_id(ctx, root_id);
     if (root == NULL) {
         ruin_Widget temp;
@@ -273,6 +291,25 @@ void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin
     };
     root->first_child = NULL;
     window->root_widget = root;
+
+    bool windows_overlaid = false;
+    if (hovered_window(window->window_rect, ctx->mouse_position)){
+        for (int i = 0; i < ctx->windows.index; ++i) {
+            ruin_Window* curr_window = ruin_WindowArray__Get(&ctx->windows, i);
+            if (curr_window->id == window->id) continue;
+            windows_overlaid |= hovered_window(curr_window->window_rect, ctx->mouse_position);
+        };
+    };
+
+    if (window->id == 5570807466687085888LL) 
+        printf(">>> curr pos overlaied: %i\n", windows_overlaid);
+
+
+    if (clicked(ctx, window->window_rect) && !windows_overlaid) {
+        ctx->prev_active_window = ctx->active_window;
+        ctx->active_window = window->id;
+    };
+
     ruin_WidgetStack__Push(ctx->parent_stack, root);
 };
 
@@ -507,21 +544,15 @@ internal void generate__draw_calls(ruin_Context* ctx, ruin_WidgetStack* widget_s
     ruin_WidgetStack__Clear(widget_stack);
 };
 
-internal bool hovered_window(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
-    return mouse_position.x >= rectangle.x && mouse_position.x <= rectangle.w && mouse_position.y >= rectangle.y && mouse_position.y <= rectangle.h;
-};
 
 void ruin_ComputeLayout(ruin_Context* ctx) { 
 
     Temp_Arena_Memory temp_mem = temp_arena_memory_begin(&ctx->arena);
-    ruin_WidgetStack* widget_stack = ruin_WidgetStack__Init(temp_mem.arena);
+    ruin_WidgetStack* widget_stack  = ruin_WidgetStack__Init(temp_mem.arena);
     ruin_WidgetStack* widget_stack2 = ruin_WidgetStack__Init(temp_mem.arena);
 
-
-    ruin_Id window;
     for (size_t i = 0; i < ctx->windows.index; ++i) {
         ruin_Widget* root = ruin_WindowArray__Get(&ctx->windows, i)->root_widget;
-        // printf("window %s %f\n", ruin_WindowArray__Get(&ctx->windows, i)->title, root->draw_coords.bbox.x);
 
         compute__raw_sizes(ctx, widget_stack, root);
         compute__parent_depend_sizes(ctx, widget_stack, root);
@@ -530,21 +561,12 @@ void ruin_ComputeLayout(ruin_Context* ctx) {
         compute__draw_coordinates(ctx, widget_stack, root);
 
         generate__draw_calls(ctx, widget_stack, root);
-        printf("%s => ", ruin_WindowArray__Get(&ctx->windows, i)->title);
-
-        if (hovered_window(root->draw_coords.bbox, ctx->mouse_position)) {
-            window =  ruin_WindowArray__Get(&ctx->windows, i)->id;
-        };
-    };
-    printf("\n");
-    for (size_t i = 0; i < ctx->windows.index; ++i) {
-        if (ruin_WindowArray__Get(&ctx->windows, i)->id == window) {
-            ruin_WindowArray__MoveElementToLast(&ctx->windows, window);
-            // printf("hoverd: %s\n", ruin_WindowArray__Get(&ctx->windows, i)->title);
-        };
     };
 
     temp_arena_memory_end(temp_mem);
     arena_free_all(&ctx->temp_arena);
 };
 
+void ruin_PrepareFrame(ruin_Context* ctx) {
+    ruin_WindowArray__MoveElementToLast(&ctx->windows, ctx->active_window);
+};

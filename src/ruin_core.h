@@ -19,7 +19,8 @@ extern "C" {
 #define ruin_WidgetOptions U32
 
 typedef size_t ruin_FontID;
-typedef U64    ruin_Id; 
+typedef U64    ruin_WidgetID; 
+typedef U64    ruin_WindowID; 
 typedef enum   ruin_SizeKind    { 
     RUIN_SIZEKIND_PIXEL,
     RUIN_SIZEKIND_TEXTCONTENT,
@@ -31,6 +32,8 @@ typedef enum ruin_MouseButtonClickType {
     RUIN_MOUSE_BUTTON_CLICK_LEFT             = (1<<0),
     RUIN_MOUSE_BUTTON_CLICK_MIDDLE           = (1<<1),
     RUIN_MOUSE_BUTTON_CLICK_RIGHT            = (1<<2),
+    RUIN_MOUSE_BUTTON_CLICK_EXTRA_1          = (1<<3),
+    RUIN_MOUSE_BUTTON_CLICK_EXTRA_2          = (1<<4),
 } ruin_MouseButtonClickType;
 #define ruin_MouseButtonClick U8 
 typedef enum   ruin_WidgetFlags { 
@@ -111,7 +114,7 @@ struct ruin_Widget {
     ruin_WidgetOptions flags;
     String8 display_text;
     String8 widget_name;
-    ruin_Id id;
+    ruin_WidgetID id;
     ruin_RectSide padding;
     ruin_RectSide border_width;
 
@@ -129,10 +132,10 @@ struct ruin_Widget {
 typedef struct ruin_Window ruin_Window;
 struct ruin_Window {
     ruin_Rect window_rect;
-    ruin_Widget* root_widget;  // window tree, donot persist across frames
+    ruin_Widget* root_widget;  // window tree, doesnot persist across frames
     const char* title;
     char window_flags;
-    ruin_Id id;
+    ruin_WindowID id;
 };
 
 
@@ -202,7 +205,7 @@ struct ruin_Window {
 
 DEFINE_ARRAY_CACHES(ruin_Widget);
 DEFINE_ARRAY_CACHES(ruin_Window);
-internal void ruin_WindowArray__MoveElementToLast(ruin_WindowArray* array, ruin_Id window_id) {
+internal void ruin_WindowArray__MoveElementToLast(ruin_WindowArray* array, ruin_WidgetID window_id) {
     if (array == NULL) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY POINTER ON %s\n", "ruin_WindowArray__MoveElementToLast"); return; };
     if (array->items == NULL ) { fprintf(stderr, "[RUIN_ERROR]: INVALID ARRAY ITEMS POINTER ON %s\n", "ruin_WindowArray__MoveElementToLast"); return; }; 
 
@@ -314,7 +317,7 @@ internal void ruin_WidgetStack__Clear(ruin_WidgetStack* stack) {
 
 typedef struct {
     ruin_WidgetArray widgets; // caches -> list of all widgets in that current window, persisted across frames
-    ruin_WindowArray windows;
+    ruin_WindowArray windows; // caches -> list of all windows, persisted across frames
     struct {
         size_t index;
         ruin_DrawCall items[DRAW_QUEUE_SIZE]; // emptied every frame
@@ -329,11 +332,20 @@ typedef struct {
     ruin_Window* current_window;
 
     // USED FOR INTERACTIVITY
-    ruin_Vec2 mouse_position;
+    ruin_Vec2             mouse_position;
     ruin_MouseButtonClick mouse_action;
-    ruin_Id hot;
-    ruin_Id active;
-    U64 frame;
+
+    ruin_WidgetID         hot_widget;
+    ruin_WidgetID         prev_hot_widget;
+    ruin_WidgetID         active_widget;
+    ruin_WidgetID         prev_active_widget;
+
+    ruin_WindowID         hot_window;
+    ruin_WindowID         prev_hot_window;
+    ruin_WindowID         active_window;
+    ruin_WindowID         prev_active_window;
+
+    U64                   frame;
 
     // STYLE STACKS => push to the stacks to apply style to upcoming widgets
     ruin_ColorStack    background_color_stack;
@@ -347,20 +359,22 @@ typedef struct {
     ruin_WidgetStack* parent_stack;
 } ruin_Context;
 
-ruin_Id hash_string(ruin_Context* ctx, const char* str);
+ruin_WidgetID hash_string(ruin_Context* ctx, const char* str);
 // void ruin_UpdateIO(ruin_Context* ctx);
 void ruin_SetFontCount(ruin_Context* ctx, size_t number_of_font_sizes);
 ruin_FontID ruin_LoadFont(ruin_Context* ctx, const char* path, const char* name, U32 font_size);
 ruin_Context* create_ruin_context();
-ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_Id id, ruin_WidgetOptions opt);
+ruin_Widget* ruin_create_widget_ex(ruin_Context* ctx, const char* full_name, ruin_WidgetID id, ruin_WidgetOptions opt);
 
-ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_Id id);
-ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_Id id);
+ruin_Window* get_window_by_id(ruin_Context* ctx, ruin_WidgetID id);
+ruin_Widget* get_widget_by_id(ruin_Context* ctx, ruin_WidgetID id);
 
 void ruin_BeginWindow(ruin_Context* ctx, const char* title, ruin_Rect rect, ruin_WindowFlags flags);
 void ruin_EndWindow(ruin_Context* ctx);
 void ruin_ComputeLayout(ruin_Context* ctx);
 void ruin_PushWidgetNArray(ruin_Widget* root_widget, ruin_Widget* new_widget);
+
+void ruin_PrepareFrame(ruin_Context* ctx);
 
 
 #ifdef __cplusplus

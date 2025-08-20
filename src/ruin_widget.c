@@ -7,7 +7,7 @@ internal bool hovered(ruin_Rect rectangle, ruin_Vec2 mouse_position) {
 };
 
 void ruin_RowBegin(ruin_Context* ctx, const char* label) {
-    ruin_Id id = hash_string(ctx, label);
+    ruin_WidgetID id = hash_string(ctx, label);
     ruin_Widget* row_warpper = get_widget_by_id(ctx, id);
     if (row_warpper == NULL) {
         row_warpper = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_NO_FLAGS);
@@ -33,7 +33,7 @@ void ruin_RowEnd(ruin_Context* ctx) {
 };
 
 B8 ruin_Label(ruin_Context* ctx, const char* label) {
-    ruin_Id id = hash_string(ctx, label);
+    ruin_WidgetID id = hash_string(ctx, label);
     ruin_Widget* label_widget = get_widget_by_id(ctx, id);
     if (label_widget == NULL) {
         label_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND);
@@ -44,7 +44,7 @@ B8 ruin_Label(ruin_Context* ctx, const char* label) {
 };
 
 void ruin_SpacerFillX(ruin_Context* ctx) {
-    ruin_Id id = hash_string(ctx, "");
+    ruin_WidgetID id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
         spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
@@ -55,7 +55,7 @@ void ruin_SpacerFillX(ruin_Context* ctx) {
 };
 
 void ruin_SpacerFixedX(ruin_Context* ctx, F32 space) {
-    ruin_Id id = hash_string(ctx, "");
+    ruin_WidgetID id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
         spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
@@ -66,7 +66,7 @@ void ruin_SpacerFixedX(ruin_Context* ctx, F32 space) {
 };
 
 void ruin_SpacerFillY(ruin_Context* ctx) {
-    ruin_Id id = hash_string(ctx, "");
+    ruin_WidgetID id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
         spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
@@ -77,7 +77,7 @@ void ruin_SpacerFillY(ruin_Context* ctx) {
 };
 
 void ruin_SpacerFixedY(ruin_Context* ctx, F32 space) {
-    ruin_Id id = hash_string(ctx, "");
+    ruin_WidgetID id = hash_string(ctx, "");
     ruin_Widget* spacer = get_widget_by_id(ctx, id);
     if (spacer == NULL) {
         spacer = (ruin_Widget*)arena_alloc(&ctx->temp_arena, sizeof(ruin_Widget));
@@ -89,7 +89,7 @@ void ruin_SpacerFixedY(ruin_Context* ctx, F32 space) {
 
 
 B8 ruin_Button(ruin_Context* ctx, const char* label) {
-    ruin_Id id = hash_string(ctx, label);
+    ruin_WidgetID id = hash_string(ctx, label);
     ruin_Widget* button_widget = get_widget_by_id(ctx, id);
     if (button_widget == NULL) {
         button_widget = ruin_create_widget_ex(ctx, label, id, RUIN_WIDGETFLAGS_DRAW_TEXT|RUIN_WIDGETFLAGS_DRAW_BACKGROUND|RUIN_WIDGETFLAGS_DRAW_BORDER);
@@ -102,9 +102,9 @@ B8 ruin_Button(ruin_Context* ctx, const char* label) {
     ruin_Vec2 mouse_position = ctx->mouse_position;
     bool is_hovered = hovered(rect, mouse_position);
     if (!is_hovered) {
-        button_widget->background_color = (ruin_Color) {  .r = 255, .g = 0, .b = 0, .a = 255 };
+        button_widget->background_color = (ruin_Color) {  .r = 248, .g = 248, .b = 248, .a = 255 };
     } else {
-        button_widget->background_color = (ruin_Color) {  .r = 255, .g = 250, .b = 0, .a = 255 };
+        button_widget->background_color = (ruin_Color) {  .r = 238, .g = 238, .b = 238, .a = 255 };
     };
 
     return (is_hovered&ctx->mouse_action);
